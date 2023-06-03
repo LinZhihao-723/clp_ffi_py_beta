@@ -19,7 +19,7 @@ Metadata::Metadata(nlohmann::json const& metadata, bool is_four_byte_encoding) {
     m_is_four_byte_encoding = is_four_byte_encoding;
 
     // Read ref_timestamp
-    auto const ref_timestamp_key = ffi::ir_stream::cProtocol::Metadata::ReferenceTimestampKey;
+    auto const ref_timestamp_key{ffi::ir_stream::cProtocol::Metadata::ReferenceTimestampKey};
     if (false == is_valid_json_string_data(metadata, ref_timestamp_key)) {
         throw ExceptionFFI(ErrorCode_MetadataCorrupted,
                            __FILE__,
@@ -28,7 +28,7 @@ Metadata::Metadata(nlohmann::json const& metadata, bool is_four_byte_encoding) {
     }
 
     try {
-        const std::string ref_timestamp_str = metadata[ref_timestamp_key];
+        const std::string ref_timestamp_str{metadata[ref_timestamp_key]};
         m_ref_timestamp = std::stoi(ref_timestamp_str);
     } catch (std::exception const& ex) {
         // Handle the exception triggered by stoi
@@ -36,7 +36,7 @@ Metadata::Metadata(nlohmann::json const& metadata, bool is_four_byte_encoding) {
     }
 
     // Read timestamp format
-    auto const timestamp_format_key = ffi::ir_stream::cProtocol::Metadata::TimestampPatternKey;
+    auto const timestamp_format_key{ffi::ir_stream::cProtocol::Metadata::TimestampPatternKey};
     if (false == is_valid_json_string_data(metadata, timestamp_format_key)) {
         throw ExceptionFFI(ErrorCode_MetadataCorrupted,
                            __FILE__,
@@ -46,7 +46,7 @@ Metadata::Metadata(nlohmann::json const& metadata, bool is_four_byte_encoding) {
     m_timestamp_format = metadata[timestamp_format_key];
 
     // Read timezone
-    auto const timezone_key = ffi::ir_stream::cProtocol::Metadata::TimeZoneIdKey;
+    auto const timezone_key{ffi::ir_stream::cProtocol::Metadata::TimeZoneIdKey};
     if (false == is_valid_json_string_data(metadata, timezone_key)) {
         throw ExceptionFFI(ErrorCode_MetadataCorrupted,
                            __FILE__,
@@ -57,15 +57,15 @@ Metadata::Metadata(nlohmann::json const& metadata, bool is_four_byte_encoding) {
 }
 
 PyObject* PyMetadata_new (PyTypeObject* type, PyObject* args, PyObject* kwds) {
-    // Since PyObject APIs are designed to be portable to C
-    // type-casting should be done using C style
-    PyMetadata* self = (PyMetadata*)(type->tp_alloc(type, 0));
+    // Since tp_alloc returns <PyObject*>, we cannot use static_cast to cast it
+    // to <PyMetadata*>. A C-style casting is expected (reinterpret_cast).
+    PyMetadata* self{reinterpret_cast<PyMetadata*>(type->tp_alloc(type, 0))};
     if (nullptr == self) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::ErrorMessage::out_of_memory_error);
         Py_RETURN_NONE;
     }
     self->metadata = nullptr;
-    return (PyObject*)self;
+    return reinterpret_cast<PyObject*>(self);
 }
 
 int PyMetadata_init (PyMetadata* self, PyObject* args, PyObject* kwds) {
@@ -90,7 +90,7 @@ int PyMetadata_init (PyMetadata* self, PyObject* args, PyObject* kwds) {
 
 void PyMetadata_dealloc (PyMetadata* self) {
     delete self->metadata;
-    Py_TYPE(self)->tp_free((PyObject*)self);
+    Py_TYPE(self)->tp_free(reinterpret_cast<PyObject*>(self));
 }
 
 PyObject* PyMetadata_is_using_four_byte_encoding (PyMetadata* self) {
@@ -118,8 +118,8 @@ PyObject* PyMetadata_get_timezone (PyMetadata* self) {
 }
 
 PyMetadata* PyMetadata_init_from_json (nlohmann::json const& metadata, bool is_four_byte_encoding) {
-    PyMetadata* self =
-            (PyMetadata*)PyObject_New(PyMetadata, (PyTypeObject*)PyType_FromSpec(&PyMetadataTy));
+    PyMetadata* self{reinterpret_cast<PyMetadata*>(PyObject_New(
+            PyMetadata, reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyMetadataTy))))};
     if (nullptr == self) {
         return nullptr;
     }
@@ -130,4 +130,37 @@ PyMetadata* PyMetadata_init_from_json (nlohmann::json const& metadata, bool is_f
     }
     return self;
 }
+
+static PyMethodDef PyMetadata_method_table[] = {
+        {"is_using_four_byte_encoding",
+         reinterpret_cast<PyCFunction>(PyMetadata_is_using_four_byte_encoding),
+         METH_NOARGS,
+         "Check the encoding method (either 4byte or 8byte) from the metadata."},
+
+        {"get_ref_timestamp",
+         reinterpret_cast<PyCFunction>(PyMetadata_get_ref_timestamp),
+         METH_NOARGS,
+         "Get reference timestamp as an integer."},
+
+        {"get_timestamp_format",
+         reinterpret_cast<PyCFunction>(PyMetadata_get_timestamp_format),
+         METH_NOARGS,
+         "Get timestamp format as a string."},
+
+        {"get_timezone",
+         reinterpret_cast<PyCFunction>(PyMetadata_get_timezone),
+         METH_NOARGS,
+         "Get timezone as a string."},
+
+        {nullptr}};
+
+static PyType_Slot PyMetadata_slots[] = {
+        {Py_tp_dealloc, reinterpret_cast<void*>(PyMetadata_dealloc)},
+        {Py_tp_methods, PyMetadata_method_table},
+        {Py_tp_init, reinterpret_cast<void*>(PyMetadata_init)},
+        {Py_tp_new, reinterpret_cast<void*>(PyMetadata_new)},
+        {0, nullptr}};
+
+PyType_Spec PyMetadataTy = {
+        "IRComponents.Metadata", sizeof(PyMetadata), 0, Py_TPFLAGS_DEFAULT, PyMetadata_slots};
 } // namespace clp_ffi_py::metadata

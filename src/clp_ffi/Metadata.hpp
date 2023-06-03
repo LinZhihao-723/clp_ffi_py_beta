@@ -1,5 +1,5 @@
-#ifndef CLP_PY_Metadata
-#define CLP_PY_Metadata
+#ifndef CLP_PY_METADATA
+#define CLP_PY_METADATA
 
 #include <Python.h>
 

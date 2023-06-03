@@ -22,11 +22,12 @@ clp_four_byte_encoder: Extension = Extension(
 )
 
 ir: Extension = Extension(
-    name="clp_ffi_py.IR",
+    name="clp_ffi_py.IRComponents",
     language="c++",
     sources=[
         "src/clp/components/core/src/TraceableException.cpp",
-        "src/clp_ffi/ir.cpp",
+        "src/clp_ffi/ir_components.cpp",
+        "src/clp_ffi/Message.cpp",
         "src/clp_ffi/Metadata.cpp"
     ],
     extra_compile_args=[

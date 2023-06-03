@@ -4,6 +4,8 @@
 namespace clp_ffi_py::ErrorMessage {
 constexpr char arg_parsing_error[] = "Native preamble encoder failed to parse Python arguments.";
 constexpr char out_of_memory_error[] = "Failed to allocate memory.";
+constexpr char module_loading_error[] = "Failed to load module: ";
+constexpr char type_loading_error[] = "Failed to load C extension type: ";
 } // namespace clp_ffi_py::ErrorMessage
 
 namespace Encoding {
