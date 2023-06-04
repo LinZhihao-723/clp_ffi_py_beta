@@ -6,6 +6,7 @@
 #include "../clp/components/core/submodules/json/single_include/nlohmann/json.hpp"
 
 #include "Metadata.hpp"
+#include <iostream>
 
 namespace clp_ffi_py::components {
 extern PyType_Spec PyMetadataTy;

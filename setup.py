@@ -29,6 +29,7 @@ ir: Extension = Extension(
         "src/clp_ffi/ir_components.cpp",
         "src/clp_ffi/Message.cpp",
         "src/clp_ffi/Metadata.cpp",
+        "src/clp_ffi/PyDecoder.cpp",
         "src/clp_ffi/PyMessage.cpp",
         "src/clp_ffi/PyMetadata.cpp"
     ],
