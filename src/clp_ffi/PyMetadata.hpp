@@ -23,6 +23,7 @@ PyObject* PyMetadata_get_ref_timestamp (PyMetadata* self);
 PyObject* PyMetadata_get_timestamp_format (PyMetadata* self);
 PyObject* PyMetadata_get_timezone (PyMetadata* self);
 
+char const PyMetadata_init_from_json_key[] = "_PyMetadata_init_from_json";
 PyMetadata* PyMetadata_init_from_json (nlohmann::json const& metadata, bool is_four_byte_encoding);
 } // namespace clp_ffi_py::components
 

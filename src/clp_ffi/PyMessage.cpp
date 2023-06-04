@@ -33,7 +33,7 @@ PyObject* PyMessage_get_timestamp (PyMessage* self) {
     return PyLong_FromLongLong(self->message->get_timestamp_ref());
 }
 
-PyMessage* PyMessage_create () {
+PyMessage* PyMessage_create_empty () {
     PyMessage* self{reinterpret_cast<PyMessage*>(PyObject_New(
             PyMessage, reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyMessageTy))))};
     if (nullptr == self) {
