@@ -79,7 +79,7 @@ PyMetadata* PyMetadata_init_from_json (nlohmann::json const& metadata, bool is_f
     return self;
 }
 
-static PyMethodDef PyMetadata_method_table[] = {
+static PyMethodDef PyMetadata_method_table[]{
         {"is_using_four_byte_encoding",
          reinterpret_cast<PyCFunction>(PyMetadata_is_using_four_byte_encoding),
          METH_NOARGS,
@@ -102,13 +102,12 @@ static PyMethodDef PyMetadata_method_table[] = {
 
         {nullptr}};
 
-static PyType_Slot PyMetadata_slots[] = {
-        {Py_tp_dealloc, reinterpret_cast<void*>(PyMetadata_dealloc)},
-        {Py_tp_methods, PyMetadata_method_table},
-        {Py_tp_init, reinterpret_cast<void*>(PyMetadata_init)},
-        {Py_tp_new, reinterpret_cast<void*>(PyMetadata_new)},
-        {0, nullptr}};
+static PyType_Slot PyMetadata_slots[]{{Py_tp_dealloc, reinterpret_cast<void*>(PyMetadata_dealloc)},
+                                      {Py_tp_methods, PyMetadata_method_table},
+                                      {Py_tp_init, reinterpret_cast<void*>(PyMetadata_init)},
+                                      {Py_tp_new, reinterpret_cast<void*>(PyMetadata_new)},
+                                      {0, nullptr}};
 
-PyType_Spec PyMetadataTy = {
+PyType_Spec PyMetadataTy{
         "IRComponents.Metadata", sizeof(PyMetadata), 0, Py_TPFLAGS_DEFAULT, PyMetadata_slots};
 } // namespace clp_ffi_py::components

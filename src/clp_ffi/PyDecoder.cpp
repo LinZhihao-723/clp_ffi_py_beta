@@ -72,7 +72,6 @@ PyObject* PyDecoderBuffer_read_from (PyDecoderBuffer* self, PyObject* args) {
         Py_RETURN_NONE;
     }
     self->read_into_buf(istream);
-    std::cerr << "Successfully Returned\n";
     Py_RETURN_NONE;
 }
 
@@ -91,7 +90,6 @@ PyObject* PyDecoderBuffer_dump (PyDecoderBuffer* self) {
 }
 
 int PyDecoderBuffer_getbuffer (PyDecoderBuffer* self, Py_buffer* view, int flags) {
-    // Implement your getbuffer logic here
     assert(self->buf);
     auto const length{self->buf_capacity - self->buf_size};
     auto const data{self->buf + self->buf_size};
@@ -113,18 +111,28 @@ static PyMethodDef PyDecoderBuffer_method_table[] = {
          "Dump the buffer."},
         {nullptr}};
 
-static PyType_Slot PyDecoderBuffer_slots[] = {
+static PyBufferProcs PyDecoderBuffer_as_buffer{
+        .bf_getbuffer{reinterpret_cast<getbufferproc>(PyDecoderBuffer_getbuffer)},
+        .bf_releasebuffer{reinterpret_cast<releasebufferproc>(PyDecoderBuffer_releasebuffer)},
+};
+
+static PyType_Slot PyDecoderBuffer_slots[]{
         {Py_tp_dealloc, reinterpret_cast<void*>(PyDecoderBuffer_dealloc)},
         {Py_tp_methods, PyDecoderBuffer_method_table},
         {Py_tp_init, nullptr},
-        {Py_bf_getbuffer, reinterpret_cast<void*>(PyDecoderBuffer_getbuffer)},
-        {Py_bf_releasebuffer, reinterpret_cast<void*>(PyDecoderBuffer_releasebuffer)},
         {Py_tp_new, reinterpret_cast<void*>(PyDecoderBuffer_new)},
         {0, nullptr}};
 
-PyType_Spec PyDecoderBufferTy = {"IRComponents.DecoderBuffer",
-                                 sizeof(PyDecoderBuffer),
-                                 0,
-                                 Py_TPFLAGS_DEFAULT,
-                                 PyDecoderBuffer_slots};
+static PyType_Spec PyDecoderBufferTy{"IRComponents.DecoderBuffer",
+                                     sizeof(PyDecoderBuffer),
+                                     0,
+                                     Py_TPFLAGS_DEFAULT,
+                                     PyDecoderBuffer_slots};
+
+PyObject* PyDecoderBuffer_get_PyType () {
+    auto type_object{PyType_FromSpec(&PyDecoderBufferTy)};
+    auto type = reinterpret_cast<PyTypeObject*>(type_object);
+    type->tp_as_buffer = &PyDecoderBuffer_as_buffer;
+    return type_object;
+}
 } // namespace clp_ffi_py::decoder

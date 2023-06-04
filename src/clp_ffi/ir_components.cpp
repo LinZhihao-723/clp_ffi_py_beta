@@ -51,8 +51,7 @@ static struct PyModuleDef ir_module = {
 
 static std::vector<std::pair<PyType_Spec*, char const*>> type_table{
         {&clp_ffi_py::components::PyMetadataTy, "Metadata"},
-        {&clp_ffi_py::components::PyMessageTy, "Message"},
-        {&clp_ffi_py::decoder::PyDecoderBufferTy, "DecoderBuffer"}};
+        {&clp_ffi_py::components::PyMessageTy, "Message"}};
 
 static std::vector<std::pair<void*, char const*>> api_table{
         {reinterpret_cast<void*>(&clp_ffi_py::components::PyMetadata_init_from_json),
@@ -90,6 +89,24 @@ PyMODINIT_FUNC PyInit_IRComponents (void) {
             PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
             return nullptr;
         }
+    }
+
+    PyObject* new_type{clp_ffi_py::decoder::PyDecoderBuffer_get_PyType()};
+    char const* type_name = "DecoderBuffer";
+    if (nullptr == new_type) {
+        clean_object_list(object_list);
+        std::string error_message{std::string(clp_ffi_py::ErrorMessage::object_loading_error) +
+                                  std::string(type_name)};
+        PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
+        return nullptr;
+    }
+    Py_INCREF(new_type);
+    if (PyModule_AddObject(new_module, type_name, new_type) < 0) {
+        clean_object_list(object_list);
+        std::string error_message{std::string(clp_ffi_py::ErrorMessage::object_loading_error) +
+                                  std::string(type_name)};
+        PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
+        return nullptr;
     }
 
     return new_module;

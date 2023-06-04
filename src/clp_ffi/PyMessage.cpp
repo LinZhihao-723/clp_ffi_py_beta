@@ -47,23 +47,22 @@ PyMessage* PyMessage_create_empty () {
     return self;
 }
 
-static PyMethodDef PyMessage_method_table[] = {
-        {"get_message",
-         reinterpret_cast<PyCFunction>(PyMessage_get_message),
-         METH_NOARGS,
-         "Get message as a string."},
-        {"get_timestamp",
-         reinterpret_cast<PyCFunction>(PyMessage_get_timestamp),
-         METH_NOARGS,
-         "Get timestamp as a integer."},
-        {nullptr}};
+static PyMethodDef PyMessage_method_table[]{{"get_message",
+                                             reinterpret_cast<PyCFunction>(PyMessage_get_message),
+                                             METH_NOARGS,
+                                             "Get message as a string."},
+                                            {"get_timestamp",
+                                             reinterpret_cast<PyCFunction>(PyMessage_get_timestamp),
+                                             METH_NOARGS,
+                                             "Get timestamp as a integer."},
+                                            {nullptr}};
 
-static PyType_Slot PyMessage_slots[] = {{Py_tp_dealloc, reinterpret_cast<void*>(PyMessage_dealloc)},
-                                        {Py_tp_methods, PyMessage_method_table},
-                                        {Py_tp_init, nullptr},
-                                        {Py_tp_new, reinterpret_cast<void*>(PyMessage_new)},
-                                        {0, nullptr}};
+static PyType_Slot PyMessage_slots[]{{Py_tp_dealloc, reinterpret_cast<void*>(PyMessage_dealloc)},
+                                     {Py_tp_methods, PyMessage_method_table},
+                                     {Py_tp_init, nullptr},
+                                     {Py_tp_new, reinterpret_cast<void*>(PyMessage_new)},
+                                     {0, nullptr}};
 
-PyType_Spec PyMessageTy = {
+PyType_Spec PyMessageTy{
         "IRComponents.Message", sizeof(PyMessage), 0, Py_TPFLAGS_DEFAULT, PyMessage_slots};
 } // namespace clp_ffi_py::components
