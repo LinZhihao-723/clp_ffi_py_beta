@@ -1,6 +1,6 @@
 #include "ErrorMessage.hpp"
-#include "Message.hpp"
-#include "Metadata.hpp"
+#include "PyMessage.hpp"
+#include "PyMetadata.hpp"
 
 #include <iostream>
 #include <utility>
@@ -34,8 +34,8 @@ static struct PyModuleDef ir_module = {
         PyModuleDef_HEAD_INIT, "IRComponents", "CLP IR Components", -1, NULL};
 
 static std::vector<std::pair<PyType_Spec*, char const*>> type_table{
-        {&clp_ffi_py::metadata::PyMetadataTy, "Metadata"},
-        {&clp_ffi_py::message::PyMessageTy, "Message"}};
+        {&clp_ffi_py::components::PyMetadataTy, "Metadata"},
+        {&clp_ffi_py::components::PyMessageTy, "Message"}};
 
 // in the module initialization function
 PyMODINIT_FUNC PyInit_IRComponents (void) {

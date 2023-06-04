@@ -28,7 +28,9 @@ ir: Extension = Extension(
         "src/clp/components/core/src/TraceableException.cpp",
         "src/clp_ffi/ir_components.cpp",
         "src/clp_ffi/Message.cpp",
-        "src/clp_ffi/Metadata.cpp"
+        "src/clp_ffi/Metadata.cpp",
+        "src/clp_ffi/PyMessage.cpp",
+        "src/clp_ffi/PyMetadata.cpp"
     ],
     extra_compile_args=[
         '-std=c++17',
