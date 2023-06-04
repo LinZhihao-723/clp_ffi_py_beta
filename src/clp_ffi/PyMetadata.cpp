@@ -1,7 +1,7 @@
-#include "Metadata.hpp"
 #include "PyMetadata.hpp"
 #include "ErrorMessage.hpp"
 #include "ExceptionFFI.hpp"
+#include "Metadata.hpp"
 
 namespace clp_ffi_py::components {
 PyObject* PyMetadata_new (PyTypeObject* type, PyObject* args, PyObject* kwds) {

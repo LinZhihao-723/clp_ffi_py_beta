@@ -55,4 +55,4 @@ Metadata::Metadata(nlohmann::json const& metadata, bool is_four_byte_encoding) {
     }
     m_timezone = metadata[timezone_key];
 }
-}
+} // namespace clp_ffi_py::components

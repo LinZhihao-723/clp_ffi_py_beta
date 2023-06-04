@@ -1,6 +1,6 @@
-#include "Message.hpp"
 #include "PyMessage.hpp"
 #include "ErrorMessage.hpp"
+#include "Message.hpp"
 
 namespace clp_ffi_py::components {
 PyObject* PyMessage_new (PyTypeObject* type, PyObject* args, PyObject* kwds) {
