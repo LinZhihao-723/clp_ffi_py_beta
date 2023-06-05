@@ -88,8 +88,9 @@ PyObject* PyDecoderBuffer_read_from (PyDecoderBuffer* self, PyObject* args) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::ErrorMessage::arg_parsing_error);
         Py_RETURN_NONE;
     }
-    self->read_from(istream);
-    Py_RETURN_NONE;
+    auto num_bytes_read{self->read_from(istream)};
+    PyObject* py_integer{PyLong_FromSize_t(static_cast<size_t>(num_bytes_read))};
+    return py_integer;
 }
 
 PyObject* PyDecoderBuffer_dump (PyDecoderBuffer* self) {

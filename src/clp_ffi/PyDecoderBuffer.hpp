@@ -2,6 +2,7 @@
 #define CLP_PY_PYDECODER_BUFFER
 
 #include <Python.h>
+#include <utility>
 
 namespace clp_ffi_py::decoder {
 constexpr const size_t initial_capacity{4096};
