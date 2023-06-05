@@ -29,9 +29,9 @@ Metadata::Metadata(nlohmann::json const& metadata, bool is_four_byte_encoding) {
 
     try {
         const std::string ref_timestamp_str{metadata[ref_timestamp_key]};
-        m_ref_timestamp = std::stoi(ref_timestamp_str);
+        m_ref_timestamp = std::stoull(ref_timestamp_str);
     } catch (std::exception const& ex) {
-        // Handle the exception triggered by stoi
+        // Handle the exception triggered by stoull
         throw ExceptionFFI(ErrorCode_Unsupported, __FILE__, __LINE__, ex.what());
     }
 

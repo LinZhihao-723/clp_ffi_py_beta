@@ -14,6 +14,7 @@ public:
 
     std::string& get_message_ref () { return m_message; }
     ffi::epoch_time_ms_t& get_timestamp_ref () { return m_timestamp; }
+    void set_timestamp (ffi::epoch_time_ms_t timestamp) { m_timestamp = timestamp; }
 
 private:
     std::string m_message;

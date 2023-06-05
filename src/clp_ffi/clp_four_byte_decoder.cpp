@@ -7,6 +7,10 @@ static PyMethodDef DecoderMethods[] = {{"decode_preamble",
                                         clp_ffi_py::decoder::four_byte_decoder::decode_preamble,
                                         METH_VARARGS,
                                         "Decode a preamble and return a PyMetadata object."},
+                                        {"decode_next_message",
+                                        clp_ffi_py::decoder::four_byte_decoder::decode_next_message,
+                                        METH_VARARGS,
+                                        "Decode next messaage and return a PyMessage object."},
                                        {NULL, NULL, 0, NULL}};
 
 static struct PyModuleDef clp_four_byte_decoder = {
