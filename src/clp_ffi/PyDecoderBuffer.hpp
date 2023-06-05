@@ -1,5 +1,5 @@
-#ifndef CLP_PY_PYDECODER
-#define CLP_PY_PYDECODER
+#ifndef CLP_PY_PYDECODER_BUFFER
+#define CLP_PY_PYDECODER_BUFFER
 
 #include <Python.h>
 
@@ -8,12 +8,19 @@ constexpr const size_t initial_capacity{4096};
 
 struct PyDecoderBuffer {
     PyObject_HEAD;
-    uint8_t* buf;
+    int8_t* buf;
     Py_ssize_t cursor_pos;
     Py_ssize_t buf_size;
     Py_ssize_t buf_capacity;
+
+    [[nodiscard]] Py_ssize_t read_from (PyObject* istream);
+    [[nodiscard]] std::pair<int8_t*, size_t> get_ir_buffer () {
+        return {buf + cursor_pos, buf_size - cursor_pos};
+    }
+
+private:
     void grow ();
-    Py_ssize_t read_into_buf (PyObject* istream);
+    void shift ();
 };
 
 PyObject* PyDecoderBuffer_get_PyType ();

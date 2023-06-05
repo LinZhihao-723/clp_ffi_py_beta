@@ -2,49 +2,10 @@
 #include "PyMessage.hpp"
 #include "PyMetadata.hpp"
 
-#include "PyDecoder.hpp"
+#include "PyDecoderBuffer.hpp"
+#include "utilities.hpp"
 
 #include <vector>
-
-namespace {
-void inline clean_object_list(std::vector<PyObject*>& object_list) {
-    for (auto type : object_list) {
-        Py_DECREF(type);
-    }
-}
-
-bool inline add_type(PyType_Spec* py_type,
-                     char const* type_name,
-                     PyObject* module,
-                     std::vector<PyObject*>& object_list) {
-    PyObject* new_type{PyType_FromSpec(py_type)};
-    if (nullptr == new_type) {
-        return false;
-    }
-    object_list.push_back(new_type);
-    Py_INCREF(new_type);
-    if (PyModule_AddObject(module, type_name, new_type) < 0) {
-        return false;
-    }
-    return true;
-}
-
-bool inline add_capsule(void* ptr,
-                        char const* name,
-                        PyCapsule_Destructor destructor,
-                        PyObject* module,
-                        std::vector<PyObject*>& object_list) {
-    PyObject* new_capsule{PyCapsule_New(ptr, name, destructor)};
-    if (nullptr == new_capsule) {
-        return false;
-    }
-    object_list.push_back(new_capsule);
-    if (PyModule_AddObject(module, name, new_capsule) < 0) {
-        return false;
-    }
-    return true;
-}
-} // namespace
 
 static struct PyModuleDef ir_module = {
         PyModuleDef_HEAD_INIT, "IRComponents", "CLP IR Components", -1, NULL};
@@ -72,7 +33,7 @@ PyMODINIT_FUNC PyInit_IRComponents (void) {
     object_list.push_back(new_module);
 
     for (auto [type, type_name] : type_table) {
-        if (false == add_type(type, type_name, new_module, object_list)) {
+        if (false == add_type(PyType_FromSpec(type), type_name, new_module, object_list)) {
             clean_object_list(object_list);
             std::string error_message{std::string(clp_ffi_py::ErrorMessage::object_loading_error) +
                                       std::string(type_name)};
@@ -91,23 +52,23 @@ PyMODINIT_FUNC PyInit_IRComponents (void) {
         }
     }
 
-    PyObject* new_type{clp_ffi_py::decoder::PyDecoderBuffer_get_PyType()};
-    char const* type_name = "DecoderBuffer";
-    if (nullptr == new_type) {
-        clean_object_list(object_list);
-        std::string error_message{std::string(clp_ffi_py::ErrorMessage::object_loading_error) +
-                                  std::string(type_name)};
-        PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
-        return nullptr;
-    }
-    Py_INCREF(new_type);
-    if (PyModule_AddObject(new_module, type_name, new_type) < 0) {
-        clean_object_list(object_list);
-        std::string error_message{std::string(clp_ffi_py::ErrorMessage::object_loading_error) +
-                                  std::string(type_name)};
-        PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
-        return nullptr;
-    }
+    // PyObject* new_type{clp_ffi_py::decoder::PyDecoderBuffer_get_PyType()};
+    // char const* type_name = "DecoderBuffer";
+    // if (nullptr == new_type) {
+    //     clean_object_list(object_list);
+    //     std::string error_message{std::string(clp_ffi_py::ErrorMessage::object_loading_error) +
+    //                               std::string(type_name)};
+    //     PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
+    //     return nullptr;
+    // }
+    // Py_INCREF(new_type);
+    // if (PyModule_AddObject(new_module, type_name, new_type) < 0) {
+    //     clean_object_list(object_list);
+    //     std::string error_message{std::string(clp_ffi_py::ErrorMessage::object_loading_error) +
+    //                               std::string(type_name)};
+    //     PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
+    //     return nullptr;
+    // }
 
     return new_module;
 }

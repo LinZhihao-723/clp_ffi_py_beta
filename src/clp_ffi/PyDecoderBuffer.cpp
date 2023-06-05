@@ -1,4 +1,4 @@
-#include "PyDecoder.hpp"
+#include "PyDecoderBuffer.hpp"
 #include "ErrorMessage.hpp"
 
 #include <iostream>
@@ -11,7 +11,7 @@ PyObject* PyDecoderBuffer_new (PyTypeObject* type, PyObject* args, PyObject* kwd
         Py_RETURN_NONE;
     }
 
-    self->buf = reinterpret_cast<uint8_t*>(PyMem_Malloc(initial_capacity));
+    self->buf = reinterpret_cast<int8_t*>(PyMem_Malloc(initial_capacity));
     if (nullptr == self->buf) {
         Py_TYPE(self)->tp_free(reinterpret_cast<PyObject*>(self));
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::ErrorMessage::out_of_memory_error);
@@ -29,27 +29,35 @@ void PyDecoderBuffer_dealloc (PyDecoderBuffer* self) {
     Py_TYPE(self)->tp_free(reinterpret_cast<PyObject*>(self));
 }
 
-void PyDecoderBuffer::grow() {
-    assert(buf);
-    auto const new_capacity{buf_capacity * 2};
-    auto new_buf{reinterpret_cast<uint8_t*>(PyMem_Malloc(new_capacity * 2))};
-    if (nullptr == new_buf) {
-        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::ErrorMessage::out_of_memory_error);
-    }
-    buf_capacity = new_capacity;
+void PyDecoderBuffer::shift() {
     auto const num_unread_bytes{buf_size - cursor_pos};
     if (0 != num_unread_bytes) {
-        memcpy(new_buf, buf + cursor_pos, num_unread_bytes);
+        memcpy(buf, buf + cursor_pos, num_unread_bytes);
     }
-    PyMem_Free(buf);
-    buf = new_buf;
+
+    if (num_unread_bytes > (buf_capacity / 2)) {
+        // Grow the buffer if more than half of the bytes are unread
+        this->grow();
+    }
 
     // Reset cursor pos and buf size
     cursor_pos = 0;
     buf_size = num_unread_bytes;
 }
 
-Py_ssize_t PyDecoderBuffer::read_into_buf(PyObject* istream) {
+void PyDecoderBuffer::grow() {
+    assert(buf);
+    auto const new_capacity{buf_capacity * 2};
+    auto new_buf{reinterpret_cast<int8_t*>(PyMem_Realloc(buf, new_capacity * 2))};
+    if (nullptr == new_buf) {
+        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::ErrorMessage::out_of_memory_error);
+    }
+    buf_capacity = new_capacity;
+    buf = new_buf;
+}
+
+Py_ssize_t PyDecoderBuffer::read_from(PyObject* istream) {
+    this->shift();
     PyObject* retval =
             PyObject_CallMethod(istream, "readinto", "O", reinterpret_cast<PyObject*>(this));
     if (nullptr == retval) {
@@ -71,7 +79,7 @@ PyObject* PyDecoderBuffer_read_from (PyDecoderBuffer* self, PyObject* args) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::ErrorMessage::arg_parsing_error);
         Py_RETURN_NONE;
     }
-    self->read_into_buf(istream);
+    self->read_from(istream);
     Py_RETURN_NONE;
 }
 

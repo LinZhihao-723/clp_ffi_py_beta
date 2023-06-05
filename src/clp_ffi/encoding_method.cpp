@@ -1,6 +1,5 @@
 #include <chrono>
 
-#include "../clp/components/core/src/ffi/encoding_methods.hpp"
 #include "../clp/components/core/src/ffi/ir_stream/encoding_methods.hpp"
 #include "encoding_method.hpp"
 

@@ -20,6 +20,7 @@ PyObject* PyMessage_get_timestamp (PyMessage* self);
 
 constexpr char PyMessage_create_empty_key[] = "_PyMessage_create_empty";
 PyMessage* PyMessage_create_empty ();
+using PyMessageCreateFuncType = decltype(&PyMessage_create_empty);
 } // namespace clp_ffi_py::components
 
 #endif

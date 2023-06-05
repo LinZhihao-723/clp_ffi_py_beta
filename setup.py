@@ -21,6 +21,30 @@ clp_four_byte_encoder: Extension = Extension(
     ]
 )
 
+clp_four_byte_decoder: Extension = Extension(
+    name="clp_ffi_py.CLPFourByteDecoder",
+    language="c++",
+    sources=[
+        "src/clp/components/core/src/TraceableException.cpp",
+        "src/clp/components/core/src/ffi/encoding_methods.cpp",
+        "src/clp/components/core/src/string_utils.cpp",
+        "src/clp/components/core/src/ffi/ir_stream/decoding_methods.cpp",
+        "src/clp_ffi/clp_four_byte_decoder.cpp",
+        "src/clp_ffi/decoding_method.cpp",
+        "src/clp_ffi/Message.cpp",
+        "src/clp_ffi/Metadata.cpp",
+        "src/clp_ffi/PyDecoderBuffer.cpp",
+        "src/clp_ffi/utilities.cpp",
+    ],
+    extra_compile_args=[
+        '-std=c++17',
+        "-O3"
+    ],
+    define_macros=[
+        ("SOURCE_PATH_SIZE", str(len(os.path.abspath("./src/clp/components/core"))))
+    ]
+)
+
 ir: Extension = Extension(
     name="clp_ffi_py.IRComponents",
     language="c++",
@@ -29,9 +53,9 @@ ir: Extension = Extension(
         "src/clp_ffi/ir_components.cpp",
         "src/clp_ffi/Message.cpp",
         "src/clp_ffi/Metadata.cpp",
-        "src/clp_ffi/PyDecoder.cpp",
         "src/clp_ffi/PyMessage.cpp",
-        "src/clp_ffi/PyMetadata.cpp"
+        "src/clp_ffi/PyMetadata.cpp",
+        "src/clp_ffi/utilities.cpp",
     ],
     extra_compile_args=[
         '-std=c++17',
@@ -46,6 +70,6 @@ ir: Extension = Extension(
 setup(
     name="clp_ffi_py",
     description="CLP FFI Python Interface",
-    ext_modules=[clp_four_byte_encoder, ir],
+    ext_modules=[clp_four_byte_decoder, clp_four_byte_encoder, ir],
     packages=["clp_ffi_py"],
 )
