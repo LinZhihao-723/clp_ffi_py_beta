@@ -4,6 +4,7 @@
 #include <Python.h>
 
 #include "Message.hpp"
+#include "utilities.hpp"
 
 namespace clp_ffi_py::components {
 extern PyType_Spec PyMessageTy;

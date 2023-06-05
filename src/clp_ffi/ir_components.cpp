@@ -52,23 +52,5 @@ PyMODINIT_FUNC PyInit_IRComponents (void) {
         }
     }
 
-    // PyObject* new_type{clp_ffi_py::decoder::PyDecoderBuffer_get_PyType()};
-    // char const* type_name = "DecoderBuffer";
-    // if (nullptr == new_type) {
-    //     clean_object_list(object_list);
-    //     std::string error_message{std::string(clp_ffi_py::ErrorMessage::object_loading_error) +
-    //                               std::string(type_name)};
-    //     PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
-    //     return nullptr;
-    // }
-    // Py_INCREF(new_type);
-    // if (PyModule_AddObject(new_module, type_name, new_type) < 0) {
-    //     clean_object_list(object_list);
-    //     std::string error_message{std::string(clp_ffi_py::ErrorMessage::object_loading_error) +
-    //                               std::string(type_name)};
-    //     PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
-    //     return nullptr;
-    // }
-
     return new_module;
 }

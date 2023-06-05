@@ -1,5 +1,6 @@
 #include "PyDecoderBuffer.hpp"
 #include "ErrorMessage.hpp"
+#include "utilities.hpp"
 
 #include <iostream>
 
@@ -31,29 +32,37 @@ void PyDecoderBuffer_dealloc (PyDecoderBuffer* self) {
 
 void PyDecoderBuffer::shift() {
     auto const num_unread_bytes{buf_size - cursor_pos};
-    if (0 != num_unread_bytes) {
-        memcpy(buf, buf + cursor_pos, num_unread_bytes);
-    }
 
     if (num_unread_bytes > (buf_capacity / 2)) {
         // Grow the buffer if more than half of the bytes are unread
-        this->grow();
+        this->grow_and_shift();
+    } else {
+        memcpy(buf, buf + cursor_pos, num_unread_bytes);
+        // Reset cursor pos and buf size
+        cursor_pos = 0;
+        buf_size = num_unread_bytes;
     }
+}
+
+void PyDecoderBuffer::grow_and_shift() {
+    assert(buf);
+    auto const num_unread_bytes{buf_size - cursor_pos};
+    auto const new_capacity{buf_capacity * 2};
+    auto new_buf{reinterpret_cast<int8_t*>(PyMem_Malloc(new_capacity))};
+    if (nullptr == new_buf) {
+        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::ErrorMessage::out_of_memory_error);
+    }
+
+    memcpy(new_buf, buf + cursor_pos, num_unread_bytes);
+
+    // Clean old buffer
+    PyMem_Free(buf);
+    buf = new_buf;
+    buf_capacity = new_capacity;
 
     // Reset cursor pos and buf size
     cursor_pos = 0;
     buf_size = num_unread_bytes;
-}
-
-void PyDecoderBuffer::grow() {
-    assert(buf);
-    auto const new_capacity{buf_capacity * 2};
-    auto new_buf{reinterpret_cast<int8_t*>(PyMem_Realloc(buf, new_capacity * 2))};
-    if (nullptr == new_buf) {
-        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::ErrorMessage::out_of_memory_error);
-    }
-    buf_capacity = new_capacity;
-    buf = new_buf;
 }
 
 Py_ssize_t PyDecoderBuffer::read_from(PyObject* istream) {

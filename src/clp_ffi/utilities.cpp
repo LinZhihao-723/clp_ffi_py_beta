@@ -45,3 +45,7 @@ void* get_capsule (PyObject* module, char const* key) {
     void* retval{PyCapsule_GetPointer(capsule, key)};
     return retval;
 }
+
+void debug_message (std::string const& msg) {
+    std::cerr << msg << "\n";
+}

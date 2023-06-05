@@ -19,7 +19,7 @@ struct PyDecoderBuffer {
     }
 
 private:
-    void grow ();
+    void grow_and_shift ();
     void shift ();
 };
 

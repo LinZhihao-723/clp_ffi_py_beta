@@ -20,4 +20,6 @@ bool add_capsule (void* ptr,
 
 void* get_capsule (PyObject* module, char const* key);
 
+void debug_message (std::string const& msg);
+
 #endif
