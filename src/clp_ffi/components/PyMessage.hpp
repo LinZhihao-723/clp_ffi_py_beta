@@ -1,10 +1,10 @@
 #ifndef CLP_PY_PYMESSAGE
 #define CLP_PY_PYMESSAGE
 
-#include <Python.h>
+#include "../Python.hpp"
 
 #include "Message.hpp"
-#include "utilities.hpp"
+#include "../utilities.hpp"
 
 namespace clp_ffi_py::components {
 extern PyType_Spec PyMessageTy;

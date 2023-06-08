@@ -1,11 +1,9 @@
-#include "ErrorMessage.hpp"
-#include "PyMessage.hpp"
-#include "PyMetadata.hpp"
-
-#include "PyDecoderBuffer.hpp"
-#include "utilities.hpp"
-
-#include <vector>
+#include "../Python.hpp"
+#include "../ErrorMessage.hpp"
+#include "../utilities.hpp"
+#include "../components/PyMessage.hpp"
+#include "../components/PyMetadata.hpp"
+#include "../decoder/PyDecoderBuffer.hpp"
 
 static struct PyModuleDef ir_module = {
         PyModuleDef_HEAD_INIT, "IRComponents", "CLP IR Components", 0, NULL};

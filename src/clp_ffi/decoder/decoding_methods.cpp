@@ -1,11 +1,12 @@
-#include "decoding_method.hpp"
+#include "../Python.hpp"
+#include "decoding_methods.hpp"
 #include "PyDecoderBuffer.hpp"
 
 #include <string>
 
-#include "../clp/components/core/src/ffi/ir_stream/decoding_methods.hpp"
-#include "../clp/components/core/submodules/json/single_include/nlohmann/json.hpp"
-#include "ErrorMessage.hpp"
+#include "../../clp/components/core/src/ffi/ir_stream/decoding_methods.hpp"
+#include "../../clp/components/core/submodules/json/single_include/nlohmann/json.hpp"
+#include "../ErrorMessage.hpp"
 
 static inline Py_ssize_t populate_buffer (clp_ffi_py::decoder::PyDecoderBuffer* buffer,
                                           PyObject* istream) {

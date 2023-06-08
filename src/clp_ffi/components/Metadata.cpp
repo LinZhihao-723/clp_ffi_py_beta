@@ -1,8 +1,8 @@
 #include "Metadata.hpp"
-#include "ErrorMessage.hpp"
-#include "ExceptionFFI.hpp"
+#include "../ErrorMessage.hpp"
+#include "../ExceptionFFI.hpp"
 
-#include "../clp/components/core/src/ffi/ir_stream/protocol_constants.hpp"
+#include "../../clp/components/core/src/ffi/ir_stream/protocol_constants.hpp"
 
 static inline bool is_valid_json_string_data (nlohmann::json const& data, char const* key) {
     return data.contains(key) && data[key].is_string();

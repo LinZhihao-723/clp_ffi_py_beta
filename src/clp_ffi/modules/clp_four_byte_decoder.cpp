@@ -1,7 +1,8 @@
-#include "ErrorMessage.hpp"
-#include "PyDecoderBuffer.hpp"
-#include "decoding_method.hpp"
-#include "utilities.hpp"
+#include "../Python.hpp"
+#include "../ErrorMessage.hpp"
+#include "../utilities.hpp"
+#include "../decoder/PyDecoderBuffer.hpp"
+#include "../decoder/decoding_methods.hpp"
 
 static PyMethodDef DecoderMethods[] = {{"decode_preamble",
                                         clp_ffi_py::decoder::four_byte_decoder::decode_preamble,

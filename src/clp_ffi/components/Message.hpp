@@ -1,10 +1,8 @@
 #ifndef CLP_PY_MESSAGE
 #define CLP_PY_MESSAGE
 
-#include <Python.h>
-
-#include "../clp/components/core/src/ffi/encoding_methods.hpp"
-#include "../clp/components/core/src/string_utils.hpp"
+#include "../../clp/components/core/src/ffi/encoding_methods.hpp"
+#include "../../clp/components/core/src/string_utils.hpp"
 
 #include "Metadata.hpp"
 

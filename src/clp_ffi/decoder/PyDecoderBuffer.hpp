@@ -1,7 +1,7 @@
 #ifndef CLP_PY_PYDECODER_BUFFER
 #define CLP_PY_PYDECODER_BUFFER
 
-#include <Python.h>
+#include "../Python.hpp"
 #include <utility>
 
 namespace clp_ffi_py::decoder {
