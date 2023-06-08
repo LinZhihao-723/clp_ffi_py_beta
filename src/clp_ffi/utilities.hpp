@@ -1,5 +1,5 @@
-#ifndef CLP_PY_UTILITIES
-#define CLP_PY_UTILITIES
+#ifndef CLP_FFI_PY_UTILITIES
+#define CLP_FFI_PY_UTILITIES
 
 #include <Python.h>
 #include <string>

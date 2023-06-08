@@ -2,6 +2,7 @@
 #include "../Python.hpp"
 #include "../components/PyMessage.hpp"
 #include "../components/PyMetadata.hpp"
+#include "../components/PyQuery.hpp"
 #include "../decoder/PyDecoderBuffer.hpp"
 #include "../utilities.hpp"
 
@@ -10,7 +11,9 @@ static struct PyModuleDef ir_module =
 
 static std::vector<std::pair<PyType_Spec*, char const*>> type_table{
         {&clp_ffi_py::components::PyMetadataTy, "Metadata"},
-        {&clp_ffi_py::components::PyMessageTy, "Message"}};
+        {&clp_ffi_py::components::PyMessageTy, "Message"},
+        {&clp_ffi_py::components::PyQueryTy, "Query"},
+};
 
 static std::vector<std::pair<void*, char const*>> api_table{
         {reinterpret_cast<void*>(&clp_ffi_py::components::PyMetadata_init_from_json),

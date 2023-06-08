@@ -56,6 +56,8 @@ ir: Extension = Extension(
         "src/clp_ffi/components/Metadata.cpp",
         "src/clp_ffi/components/PyMessage.cpp",
         "src/clp_ffi/components/PyMetadata.cpp",
+        "src/clp_ffi/components/PyQuery.cpp",
+        "src/clp_ffi/components/Query.cpp",
         "src/clp_ffi/utilities.cpp",
     ],
     extra_compile_args=[

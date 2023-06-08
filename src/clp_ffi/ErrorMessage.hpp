@@ -11,6 +11,7 @@ constexpr char object_loading_error[] = "Failed to load C extension object: ";
 constexpr char return_error[] = "Python method doesn't properly return.";
 constexpr char not_implemented_error[] = "Feature not implemented.";
 constexpr char capsule_fail_to_load_error[] = "Failed to load the capsule.";
+constexpr char py_type_error[] = "Wrong Py Type received.";
 
 namespace encoder {
     constexpr char const* cTimestampError =

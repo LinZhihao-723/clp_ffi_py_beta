@@ -1,5 +1,5 @@
-#ifndef CLP_PY_PYDECODER_BUFFER
-#define CLP_PY_PYDECODER_BUFFER
+#ifndef CLP_FFI_PY_PYDECODER_BUFFER
+#define CLP_FFI_PY_PYDECODER_BUFFER
 
 #include "../Python.hpp"
 #include <utility>

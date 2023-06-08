@@ -2,6 +2,7 @@
 
 #include "../ErrorMessage.hpp"
 #include "../ExceptionFFI.hpp"
+#include "../utilities.hpp"
 #include "Metadata.hpp"
 #include "PyMetadata.hpp"
 
@@ -34,6 +35,8 @@ int PyMetadata_init (PyMetadata* self, PyObject* args, PyObject* kwds) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
         return -1;
     }
+
+    return -1;
 
     return 0;
 }

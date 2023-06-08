@@ -1,5 +1,5 @@
-#ifndef CLP_PY_DECODING_METHOD
-#define CLP_PY_DECODING_METHOD
+#ifndef CLP_FFI_PY_DECODING_METHOD
+#define CLP_FFI_PY_DECODING_METHOD
 
 #include "../Python.hpp"
 

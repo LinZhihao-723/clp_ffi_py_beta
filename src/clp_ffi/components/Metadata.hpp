@@ -1,5 +1,5 @@
-#ifndef CLP_PY_METADATA
-#define CLP_PY_METADATA
+#ifndef CLP_FFI_PY_METADATA
+#define CLP_FFI_PY_METADATA
 
 #include "../../clp/components/core/src/ffi/encoding_methods.hpp"
 #include "../../clp/components/core/submodules/json/single_include/nlohmann/json.hpp"

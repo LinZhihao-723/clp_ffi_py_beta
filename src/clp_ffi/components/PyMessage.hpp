@@ -1,5 +1,5 @@
-#ifndef CLP_PY_PYMESSAGE
-#define CLP_PY_PYMESSAGE
+#ifndef CLP_FFI_PY_PYMESSAGE
+#define CLP_FFI_PY_PYMESSAGE
 
 #include "../Python.hpp"
 

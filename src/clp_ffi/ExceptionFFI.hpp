@@ -1,5 +1,5 @@
-#ifndef CLP_PY_EXCEPTION_FFI
-#define CLP_PY_EXCEPTION_FFI
+#ifndef CLP_FFI_PY_EXCEPTION_FFI
+#define CLP_FFI_PY_EXCEPTION_FFI
 
 #include "../clp/components/core/src/TraceableException.hpp"
 #include <string>

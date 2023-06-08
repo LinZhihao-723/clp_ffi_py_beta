@@ -1,5 +1,5 @@
-#ifndef CLP_PY_PYMETADATA
-#define CLP_PY_PYMETADATA
+#ifndef CLP_FFI_PY_PYMETADATA
+#define CLP_FFI_PY_PYMETADATA
 
 #include "../Python.hpp"
 
