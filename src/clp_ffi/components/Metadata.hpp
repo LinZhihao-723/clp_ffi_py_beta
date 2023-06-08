@@ -9,9 +9,10 @@ class Metadata {
 public:
     explicit Metadata(nlohmann::json const& metadata, bool is_four_byte_encoding);
 
-    explicit Metadata(ffi::epoch_time_ms_t ref_timestamp,
-                      std::string const& timestamp_format,
-                      std::string const& timezone)
+    explicit Metadata(
+            ffi::epoch_time_ms_t ref_timestamp,
+            std::string const& timestamp_format,
+            std::string const& timezone)
         : m_is_four_byte_encoding(true),
           m_ref_timestamp(ref_timestamp),
           m_timestamp_format(timestamp_format),

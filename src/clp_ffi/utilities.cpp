@@ -9,10 +9,11 @@ void clean_object_list (std::vector<PyObject*>& object_list) {
     }
 }
 
-bool add_type (PyObject* new_type,
-               char const* type_name,
-               PyObject* module,
-               std::vector<PyObject*>& object_list) {
+bool add_type (
+        PyObject* new_type,
+        char const* type_name,
+        PyObject* module,
+        std::vector<PyObject*>& object_list) {
     if (nullptr == new_type) {
         return false;
     }
@@ -24,11 +25,12 @@ bool add_type (PyObject* new_type,
     return true;
 }
 
-bool add_capsule (void* ptr,
-                  char const* name,
-                  PyCapsule_Destructor destructor,
-                  PyObject* module,
-                  std::vector<PyObject*>& object_list) {
+bool add_capsule (
+        void* ptr,
+        char const* name,
+        PyCapsule_Destructor destructor,
+        PyObject* module,
+        std::vector<PyObject*>& object_list) {
     PyObject* new_capsule{PyCapsule_New(ptr, name, destructor)};
     if (nullptr == new_capsule) {
         return false;

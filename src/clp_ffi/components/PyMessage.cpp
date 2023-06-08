@@ -1,9 +1,8 @@
 #include "../Python.hpp"
 
 #include "../ErrorMessage.hpp"
-#include "PyMessage.hpp"
 #include "Message.hpp"
-
+#include "PyMessage.hpp"
 
 namespace clp_ffi_py::components {
 PyObject* PyMessage_new (PyTypeObject* type, PyObject* args, PyObject* kwds) {
@@ -38,7 +37,8 @@ PyObject* PyMessage_get_timestamp (PyMessage* self) {
 
 PyMessage* PyMessage_create_empty () {
     PyMessage* self{reinterpret_cast<PyMessage*>(PyObject_New(
-            PyMessage, reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyMessageTy))))};
+            PyMessage,
+            reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyMessageTy))))};
     if (nullptr == self) {
         return nullptr;
     }
@@ -78,30 +78,36 @@ PyObject* PyMessage_wildcard_match_case_sensitive (PyMessage* self, PyObject* ar
     }
 }
 
-static PyMethodDef PyMessage_method_table[]{{"get_message",
-                                             reinterpret_cast<PyCFunction>(PyMessage_get_message),
-                                             METH_NOARGS,
-                                             "Get message as a string."},
-                                            {"get_timestamp",
-                                             reinterpret_cast<PyCFunction>(PyMessage_get_timestamp),
-                                             METH_NOARGS,
-                                             "Get timestamp as a integer."},
-                                            {"wildcard_match",
-                                             reinterpret_cast<PyCFunction>(PyMessage_wildcard_match),
-                                             METH_VARARGS,
-                                             "Wildcard match (case insensitive)"},
-                                            {"wildcard_match_case_sensitive",
-                                             reinterpret_cast<PyCFunction>(PyMessage_wildcard_match_case_sensitive),
-                                             METH_VARARGS,
-                                             "Wildcard match (case sensitive)"},
-                                            {nullptr}};
+static PyMethodDef PyMessage_method_table[]{
+        {"get_message",
+         reinterpret_cast<PyCFunction>(PyMessage_get_message),
+         METH_NOARGS,
+         "Get message as a string."},
+        {"get_timestamp",
+         reinterpret_cast<PyCFunction>(PyMessage_get_timestamp),
+         METH_NOARGS,
+         "Get timestamp as a integer."},
+        {"wildcard_match",
+         reinterpret_cast<PyCFunction>(PyMessage_wildcard_match),
+         METH_VARARGS,
+         "Wildcard match (case insensitive)"},
+        {"wildcard_match_case_sensitive",
+         reinterpret_cast<PyCFunction>(PyMessage_wildcard_match_case_sensitive),
+         METH_VARARGS,
+         "Wildcard match (case sensitive)"},
+        {nullptr}};
 
-static PyType_Slot PyMessage_slots[]{{Py_tp_dealloc, reinterpret_cast<void*>(PyMessage_dealloc)},
-                                     {Py_tp_methods, PyMessage_method_table},
-                                     {Py_tp_init, nullptr},
-                                     {Py_tp_new, reinterpret_cast<void*>(PyMessage_new)},
-                                     {0, nullptr}};
+static PyType_Slot PyMessage_slots[]{
+        {Py_tp_dealloc, reinterpret_cast<void*>(PyMessage_dealloc)},
+        {Py_tp_methods, PyMessage_method_table},
+        {Py_tp_init, nullptr},
+        {Py_tp_new, reinterpret_cast<void*>(PyMessage_new)},
+        {0, nullptr}};
 
 PyType_Spec PyMessageTy{
-        "IRComponents.Message", sizeof(PyMessage), 0, Py_TPFLAGS_DEFAULT, PyMessage_slots};
+        "IRComponents.Message",
+        sizeof(PyMessage),
+        0,
+        Py_TPFLAGS_DEFAULT,
+        PyMessage_slots};
 } // namespace clp_ffi_py::components

@@ -1,29 +1,31 @@
-#include "../Python.hpp"
 #include "../ErrorMessage.hpp"
-#include "../utilities.hpp"
+#include "../Python.hpp"
 #include "../decoder/PyDecoderBuffer.hpp"
 #include "../decoder/decoding_methods.hpp"
+#include "../utilities.hpp"
 
-static PyMethodDef DecoderMethods[] = {{"decode_preamble",
-                                        clp_ffi_py::decoder::four_byte_decoder::decode_preamble,
-                                        METH_VARARGS,
-                                        "Decode a preamble and return a PyMetadata object."},
-                                       {"decode_next_message",
-                                        clp_ffi_py::decoder::four_byte_decoder::decode_next_message,
-                                        METH_VARARGS,
-                                        "Decode next messaage and return a PyMessage object."},
-                                       {NULL, NULL, 0, NULL}};
+static PyMethodDef DecoderMethods[] = {
+        {"decode_preamble",
+         clp_ffi_py::decoder::four_byte_decoder::decode_preamble,
+         METH_VARARGS,
+         "Decode a preamble and return a PyMetadata object."},
+        {"decode_next_message",
+         clp_ffi_py::decoder::four_byte_decoder::decode_next_message,
+         METH_VARARGS,
+         "Decode next messaage and return a PyMessage object."},
+        {NULL, NULL, 0, NULL}};
 
-static struct PyModuleDef clp_four_byte_decoder = {
-        PyModuleDef_HEAD_INIT, "CLPFourByteDecoder", NULL, -1, DecoderMethods};
+static struct PyModuleDef clp_four_byte_decoder =
+        {PyModuleDef_HEAD_INIT, "CLPFourByteDecoder", NULL, -1, DecoderMethods};
 
 PyMODINIT_FUNC PyInit_CLPFourByteDecoder (void) {
     // Create the module
     std::vector<PyObject*> object_list;
     PyObject* new_module{PyModule_Create(&clp_four_byte_decoder)};
     if (nullptr == new_module) {
-        std::string error_message{std::string(clp_ffi_py::error_messages::module_loading_error) +
-                                  std::string(clp_four_byte_decoder.m_name)};
+        std::string error_message{
+                std::string(clp_ffi_py::error_messages::module_loading_error) +
+                std::string(clp_four_byte_decoder.m_name)};
         PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
         return nullptr;
     }
@@ -34,8 +36,9 @@ PyMODINIT_FUNC PyInit_CLPFourByteDecoder (void) {
     char const* type_name = "DecoderBuffer";
     if (false == add_type(new_type, type_name, new_module, object_list)) {
         clean_object_list(object_list);
-        std::string error_message{std::string(clp_ffi_py::error_messages::object_loading_error) +
-                                  std::string(type_name)};
+        std::string error_message{
+                std::string(clp_ffi_py::error_messages::object_loading_error) +
+                std::string(type_name)};
         PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
         return nullptr;
     }
@@ -44,8 +47,9 @@ PyMODINIT_FUNC PyInit_CLPFourByteDecoder (void) {
     PyObject* ir_component_module{PyImport_ImportModule("clp_ffi_py.IRComponents")};
     if (nullptr == ir_component_module) {
         clean_object_list(object_list);
-        std::string error_message{std::string(clp_ffi_py::error_messages::module_import_error) +
-                                  std::string("clp_ffi_py.IRComponents")};
+        std::string error_message{
+                std::string(clp_ffi_py::error_messages::module_import_error) +
+                std::string("clp_ffi_py.IRComponents")};
         PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
         return nullptr;
     }

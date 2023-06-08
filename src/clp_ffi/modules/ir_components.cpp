@@ -1,12 +1,12 @@
-#include "../Python.hpp"
 #include "../ErrorMessage.hpp"
-#include "../utilities.hpp"
+#include "../Python.hpp"
 #include "../components/PyMessage.hpp"
 #include "../components/PyMetadata.hpp"
 #include "../decoder/PyDecoderBuffer.hpp"
+#include "../utilities.hpp"
 
-static struct PyModuleDef ir_module = {
-        PyModuleDef_HEAD_INIT, "IRComponents", "CLP IR Components", 0, NULL};
+static struct PyModuleDef ir_module =
+        {PyModuleDef_HEAD_INIT, "IRComponents", "CLP IR Components", 0, NULL};
 
 static std::vector<std::pair<PyType_Spec*, char const*>> type_table{
         {&clp_ffi_py::components::PyMetadataTy, "Metadata"},
@@ -23,8 +23,9 @@ PyMODINIT_FUNC PyInit_IRComponents (void) {
     std::vector<PyObject*> object_list;
     PyObject* new_module{PyModule_Create(&ir_module)};
     if (nullptr == new_module) {
-        std::string error_message{std::string(clp_ffi_py::error_messages::module_loading_error) +
-                                  std::string(ir_module.m_name)};
+        std::string error_message{
+                std::string(clp_ffi_py::error_messages::module_loading_error) +
+                std::string(ir_module.m_name)};
         PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
         return nullptr;
     }
@@ -33,8 +34,9 @@ PyMODINIT_FUNC PyInit_IRComponents (void) {
     for (auto [type, type_name] : type_table) {
         if (false == add_type(PyType_FromSpec(type), type_name, new_module, object_list)) {
             clean_object_list(object_list);
-            std::string error_message{std::string(clp_ffi_py::error_messages::object_loading_error) +
-                                      std::string(type_name)};
+            std::string error_message{
+                    std::string(clp_ffi_py::error_messages::object_loading_error) +
+                    std::string(type_name)};
             PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
             return nullptr;
         }
@@ -43,8 +45,9 @@ PyMODINIT_FUNC PyInit_IRComponents (void) {
     for (auto [api, name] : api_table) {
         if (false == add_capsule(api, name, nullptr, new_module, object_list)) {
             clean_object_list(object_list);
-            std::string error_message{std::string(clp_ffi_py::error_messages::object_loading_error) +
-                                      std::string(name)};
+            std::string error_message{
+                    std::string(clp_ffi_py::error_messages::object_loading_error) +
+                    std::string(name)};
             PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
             return nullptr;
         }

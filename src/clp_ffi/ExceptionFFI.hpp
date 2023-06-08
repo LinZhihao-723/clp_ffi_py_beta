@@ -8,10 +8,11 @@ namespace clp_ffi_py {
 class ExceptionFFI : public TraceableException {
 public:
     // Constructors
-    ExceptionFFI(ErrorCode error_code,
-                 char const* const filename,
-                 int line_number,
-                 std::string message)
+    ExceptionFFI(
+            ErrorCode error_code,
+            char const* const filename,
+            int line_number,
+            std::string message)
         : TraceableException(error_code, filename, line_number),
           m_message(std::move(message)) {}
     // Methods

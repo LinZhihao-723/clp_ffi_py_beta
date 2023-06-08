@@ -12,17 +12,18 @@ constexpr char return_error[] = "Python method doesn't properly return.";
 constexpr char not_implemented_error[] = "Feature not implemented.";
 constexpr char capsule_fail_to_load_error[] = "Failed to load the capsule.";
 
-namespace Encoding {
+namespace encoder {
     constexpr char const* cTimestampError =
             "Native encoder cannot encode the given timestamp delta";
     constexpr char const* cPreambleError = "Native encoder cannot encode the given preamble";
     constexpr char const* cMessageError = "Native encoder cannot encode the given message";
-} // namespace Encoding
+} // namespace encoder
 
-namespace Decoding {
-constexpr char istream_empty_error[] = "Failed to read from istream when more bytes are expected.";
-constexpr char ir_error_code[] = "IRErrorCode: ";
-constexpr char invalid_metadata[] = "The encoded metadata is invalid.";
-} // namespace clp_ffi_py::error_messages::Decoding
+namespace decoder {
+    constexpr char istream_empty_error[] =
+            "Failed to read from istream when more bytes are expected.";
+    constexpr char ir_error_code[] = "IRErrorCode: ";
+    constexpr char invalid_metadata[] = "The encoded metadata is invalid.";
+} // namespace decoder
 } // namespace clp_ffi_py::error_messages
 #endif

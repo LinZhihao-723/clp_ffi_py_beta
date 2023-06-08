@@ -11,20 +11,22 @@ static inline bool is_valid_json_string_data (nlohmann::json const& data, char c
 namespace clp_ffi_py::components {
 Metadata::Metadata(nlohmann::json const& metadata, bool is_four_byte_encoding) {
     if (false == is_four_byte_encoding) {
-        throw ExceptionFFI(ErrorCode_Unsupported,
-                           __FILE__,
-                           __LINE__,
-                           "Eight Byte Preamble is not yet supported.");
+        throw ExceptionFFI(
+                ErrorCode_Unsupported,
+                __FILE__,
+                __LINE__,
+                "Eight Byte Preamble is not yet supported.");
     }
     m_is_four_byte_encoding = is_four_byte_encoding;
 
     // Read ref_timestamp
     auto const ref_timestamp_key{ffi::ir_stream::cProtocol::Metadata::ReferenceTimestampKey};
     if (false == is_valid_json_string_data(metadata, ref_timestamp_key)) {
-        throw ExceptionFFI(ErrorCode_MetadataCorrupted,
-                           __FILE__,
-                           __LINE__,
-                           "Reference Timestamp cannot be found in the metadata.");
+        throw ExceptionFFI(
+                ErrorCode_MetadataCorrupted,
+                __FILE__,
+                __LINE__,
+                "Reference Timestamp cannot be found in the metadata.");
     }
 
     try {
@@ -38,20 +40,22 @@ Metadata::Metadata(nlohmann::json const& metadata, bool is_four_byte_encoding) {
     // Read timestamp format
     auto const timestamp_format_key{ffi::ir_stream::cProtocol::Metadata::TimestampPatternKey};
     if (false == is_valid_json_string_data(metadata, timestamp_format_key)) {
-        throw ExceptionFFI(ErrorCode_MetadataCorrupted,
-                           __FILE__,
-                           __LINE__,
-                           "Timestamp Format cannot be found in the metadata.");
+        throw ExceptionFFI(
+                ErrorCode_MetadataCorrupted,
+                __FILE__,
+                __LINE__,
+                "Timestamp Format cannot be found in the metadata.");
     }
     m_timestamp_format = metadata[timestamp_format_key];
 
     // Read timezone
     auto const timezone_key{ffi::ir_stream::cProtocol::Metadata::TimeZoneIdKey};
     if (false == is_valid_json_string_data(metadata, timezone_key)) {
-        throw ExceptionFFI(ErrorCode_MetadataCorrupted,
-                           __FILE__,
-                           __LINE__,
-                           "TimezoneID cannot be found in the metadata.");
+        throw ExceptionFFI(
+                ErrorCode_MetadataCorrupted,
+                __FILE__,
+                __LINE__,
+                "TimezoneID cannot be found in the metadata.");
     }
     m_timezone = metadata[timezone_key];
 }

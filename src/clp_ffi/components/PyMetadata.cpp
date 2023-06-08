@@ -1,9 +1,9 @@
 #include "../Python.hpp"
 
-#include "PyMetadata.hpp"
 #include "../ErrorMessage.hpp"
 #include "../ExceptionFFI.hpp"
 #include "Metadata.hpp"
+#include "PyMetadata.hpp"
 
 namespace clp_ffi_py::components {
 PyObject* PyMetadata_new (PyTypeObject* type, PyObject* args, PyObject* kwds) {
@@ -69,7 +69,8 @@ PyObject* PyMetadata_get_timezone (PyMetadata* self) {
 
 PyMetadata* PyMetadata_init_from_json (nlohmann::json const& metadata, bool is_four_byte_encoding) {
     PyMetadata* self{reinterpret_cast<PyMetadata*>(PyObject_New(
-            PyMetadata, reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyMetadataTy))))};
+            PyMetadata,
+            reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyMetadataTy))))};
     if (nullptr == self) {
         return nullptr;
     }
@@ -104,12 +105,17 @@ static PyMethodDef PyMetadata_method_table[]{
 
         {nullptr}};
 
-static PyType_Slot PyMetadata_slots[]{{Py_tp_dealloc, reinterpret_cast<void*>(PyMetadata_dealloc)},
-                                      {Py_tp_methods, PyMetadata_method_table},
-                                      {Py_tp_init, reinterpret_cast<void*>(PyMetadata_init)},
-                                      {Py_tp_new, reinterpret_cast<void*>(PyMetadata_new)},
-                                      {0, nullptr}};
+static PyType_Slot PyMetadata_slots[]{
+        {Py_tp_dealloc, reinterpret_cast<void*>(PyMetadata_dealloc)},
+        {Py_tp_methods, PyMetadata_method_table},
+        {Py_tp_init, reinterpret_cast<void*>(PyMetadata_init)},
+        {Py_tp_new, reinterpret_cast<void*>(PyMetadata_new)},
+        {0, nullptr}};
 
 PyType_Spec PyMetadataTy{
-        "IRComponents.Metadata", sizeof(PyMetadata), 0, Py_TPFLAGS_DEFAULT, PyMetadata_slots};
+        "IRComponents.Metadata",
+        sizeof(PyMetadata),
+        0,
+        Py_TPFLAGS_DEFAULT,
+        PyMetadata_slots};
 } // namespace clp_ffi_py::components

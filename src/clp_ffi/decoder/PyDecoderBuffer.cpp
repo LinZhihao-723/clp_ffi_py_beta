@@ -1,8 +1,8 @@
 #include "../Python.hpp"
 
-#include "PyDecoderBuffer.hpp"
 #include "../ErrorMessage.hpp"
 #include "../utilities.hpp"
+#include "PyDecoderBuffer.hpp"
 
 #include <iostream>
 
@@ -143,11 +143,12 @@ static PyType_Slot PyDecoderBuffer_slots[]{
         {Py_tp_new, reinterpret_cast<void*>(PyDecoderBuffer_new)},
         {0, nullptr}};
 
-static PyType_Spec PyDecoderBufferTy{"IRComponents.DecoderBuffer",
-                                     sizeof(PyDecoderBuffer),
-                                     0,
-                                     Py_TPFLAGS_DEFAULT,
-                                     PyDecoderBuffer_slots};
+static PyType_Spec PyDecoderBufferTy{
+        "IRComponents.DecoderBuffer",
+        sizeof(PyDecoderBuffer),
+        0,
+        Py_TPFLAGS_DEFAULT,
+        PyDecoderBuffer_slots};
 
 PyObject* PyDecoderBuffer_get_PyType () {
     auto type_object{PyType_FromSpec(&PyDecoderBufferTy)};
