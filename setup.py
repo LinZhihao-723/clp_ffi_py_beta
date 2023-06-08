@@ -50,6 +50,7 @@ ir: Extension = Extension(
     language="c++",
     sources=[
         "src/clp/components/core/src/TraceableException.cpp",
+        "src/clp/components/core/src/string_utils.cpp",
         "src/clp_ffi/ir_components.cpp",
         "src/clp_ffi/Message.cpp",
         "src/clp_ffi/Metadata.cpp",

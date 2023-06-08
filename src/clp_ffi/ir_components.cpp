@@ -8,7 +8,7 @@
 #include <vector>
 
 static struct PyModuleDef ir_module = {
-        PyModuleDef_HEAD_INIT, "IRComponents", "CLP IR Components", -1, NULL};
+        PyModuleDef_HEAD_INIT, "IRComponents", "CLP IR Components", 0, NULL};
 
 static std::vector<std::pair<PyType_Spec*, char const*>> type_table{
         {&clp_ffi_py::components::PyMetadataTy, "Metadata"},

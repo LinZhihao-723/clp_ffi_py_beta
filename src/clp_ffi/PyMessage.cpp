@@ -1,3 +1,5 @@
+#define PY_SSIZE_T_CLEAN
+
 #include "PyMessage.hpp"
 #include "ErrorMessage.hpp"
 #include "Message.hpp"
@@ -47,6 +49,34 @@ PyMessage* PyMessage_create_empty () {
     return self;
 }
 
+PyObject* PyMessage_wildcard_match (PyMessage* self, PyObject* args) {
+    char const* input_wildcard;
+    Py_ssize_t input_wildcard_size;
+    if (0 == PyArg_ParseTuple(args, "s#", &input_wildcard, &input_wildcard_size)) {
+        return nullptr;
+    }
+    std::string_view wildcard{input_wildcard, static_cast<size_t>(input_wildcard_size)};
+    if (self->message->wildcard_match(wildcard)) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+
+PyObject* PyMessage_wildcard_match_case_sensitive (PyMessage* self, PyObject* args) {
+    char const* input_wildcard;
+    Py_ssize_t input_wildcard_size;
+    if (0 == PyArg_ParseTuple(args, "s#", &input_wildcard, &input_wildcard_size)) {
+        return nullptr;
+    }
+    std::string_view wildcard{input_wildcard, static_cast<size_t>(input_wildcard_size)};
+    if (self->message->wildcard_match_case_sensitive(wildcard)) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+
 static PyMethodDef PyMessage_method_table[]{{"get_message",
                                              reinterpret_cast<PyCFunction>(PyMessage_get_message),
                                              METH_NOARGS,
@@ -55,6 +85,14 @@ static PyMethodDef PyMessage_method_table[]{{"get_message",
                                              reinterpret_cast<PyCFunction>(PyMessage_get_timestamp),
                                              METH_NOARGS,
                                              "Get timestamp as a integer."},
+                                            {"wildcard_match",
+                                             reinterpret_cast<PyCFunction>(PyMessage_wildcard_match),
+                                             METH_VARARGS,
+                                             "Wildcard match (case insensitive)"},
+                                            {"wildcard_match_case_sensitive",
+                                             reinterpret_cast<PyCFunction>(PyMessage_wildcard_match_case_sensitive),
+                                             METH_VARARGS,
+                                             "Wildcard match (case sensitive)"},
                                             {nullptr}};
 
 static PyType_Slot PyMessage_slots[]{{Py_tp_dealloc, reinterpret_cast<void*>(PyMessage_dealloc)},
