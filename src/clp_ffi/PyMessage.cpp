@@ -8,13 +8,13 @@ namespace clp_ffi_py::components {
 PyObject* PyMessage_new (PyTypeObject* type, PyObject* args, PyObject* kwds) {
     PyMessage* self{reinterpret_cast<PyMessage*>(type->tp_alloc(type, 0))};
     if (nullptr == self) {
-        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::ErrorMessage::out_of_memory_error);
+        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
         Py_RETURN_NONE;
     }
     self->message = new Message();
     if (nullptr == self->message) {
         Py_TYPE(self)->tp_free(reinterpret_cast<PyObject*>(self));
-        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::ErrorMessage::out_of_memory_error);
+        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
         Py_RETURN_NONE;
     }
     return reinterpret_cast<PyObject*>(self);

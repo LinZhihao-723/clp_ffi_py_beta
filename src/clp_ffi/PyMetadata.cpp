@@ -9,7 +9,7 @@ PyObject* PyMetadata_new (PyTypeObject* type, PyObject* args, PyObject* kwds) {
     // to <PyMetadata*>. A C-style casting is expected (reinterpret_cast).
     PyMetadata* self{reinterpret_cast<PyMetadata*>(type->tp_alloc(type, 0))};
     if (nullptr == self) {
-        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::ErrorMessage::out_of_memory_error);
+        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
         Py_RETURN_NONE;
     }
     self->metadata = nullptr;
@@ -23,13 +23,13 @@ int PyMetadata_init (PyMetadata* self, PyObject* args, PyObject* kwds) {
 
     if (false ==
         PyArg_ParseTuple(args, "Lss", &ref_timestamp, &input_timestamp_format, &input_timezone)) {
-        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::ErrorMessage::arg_parsing_error);
+        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::arg_parsing_error);
         return -1;
     }
 
     self->metadata = new Metadata(ref_timestamp, input_timestamp_format, input_timezone);
     if (nullptr == self->metadata) {
-        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::ErrorMessage::out_of_memory_error);
+        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
         return -1;
     }
 

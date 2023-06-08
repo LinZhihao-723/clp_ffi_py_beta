@@ -8,14 +8,14 @@ namespace clp_ffi_py::decoder {
 PyObject* PyDecoderBuffer_new (PyTypeObject* type, PyObject* args, PyObject* kwds) {
     PyDecoderBuffer* self{reinterpret_cast<PyDecoderBuffer*>(type->tp_alloc(type, 0))};
     if (nullptr == self) {
-        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::ErrorMessage::out_of_memory_error);
+        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
         Py_RETURN_NONE;
     }
 
     self->buf = reinterpret_cast<int8_t*>(PyMem_Malloc(initial_capacity));
     if (nullptr == self->buf) {
         Py_TYPE(self)->tp_free(reinterpret_cast<PyObject*>(self));
-        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::ErrorMessage::out_of_memory_error);
+        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
         Py_RETURN_NONE;
     }
     self->buf_capacity = initial_capacity;
@@ -50,7 +50,7 @@ void PyDecoderBuffer::grow_and_shift() {
     auto const new_capacity{buf_capacity * 2};
     auto new_buf{reinterpret_cast<int8_t*>(PyMem_Malloc(new_capacity))};
     if (nullptr == new_buf) {
-        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::ErrorMessage::out_of_memory_error);
+        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
     }
 
     memcpy(new_buf, buf + cursor_pos, num_unread_bytes);
@@ -70,7 +70,7 @@ Py_ssize_t PyDecoderBuffer::read_from(PyObject* istream) {
     PyObject* retval =
             PyObject_CallMethod(istream, "readinto", "O", reinterpret_cast<PyObject*>(this));
     if (nullptr == retval) {
-        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::ErrorMessage::return_error);
+        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::return_error);
         return -1;
     }
     Py_ssize_t num_bytes_read{PyLong_AsSsize_t(retval)};
@@ -85,7 +85,7 @@ Py_ssize_t PyDecoderBuffer::read_from(PyObject* istream) {
 PyObject* PyDecoderBuffer_read_from (PyDecoderBuffer* self, PyObject* args) {
     PyObject* istream;
     if (!PyArg_ParseTuple(args, "O", &istream)) {
-        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::ErrorMessage::arg_parsing_error);
+        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::arg_parsing_error);
         Py_RETURN_NONE;
     }
     auto num_bytes_read{self->read_from(istream)};

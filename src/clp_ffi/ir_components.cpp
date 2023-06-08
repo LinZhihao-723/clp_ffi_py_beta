@@ -25,7 +25,7 @@ PyMODINIT_FUNC PyInit_IRComponents (void) {
     std::vector<PyObject*> object_list;
     PyObject* new_module{PyModule_Create(&ir_module)};
     if (nullptr == new_module) {
-        std::string error_message{std::string(clp_ffi_py::ErrorMessage::module_loading_error) +
+        std::string error_message{std::string(clp_ffi_py::error_messages::module_loading_error) +
                                   std::string(ir_module.m_name)};
         PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
         return nullptr;
@@ -35,7 +35,7 @@ PyMODINIT_FUNC PyInit_IRComponents (void) {
     for (auto [type, type_name] : type_table) {
         if (false == add_type(PyType_FromSpec(type), type_name, new_module, object_list)) {
             clean_object_list(object_list);
-            std::string error_message{std::string(clp_ffi_py::ErrorMessage::object_loading_error) +
+            std::string error_message{std::string(clp_ffi_py::error_messages::object_loading_error) +
                                       std::string(type_name)};
             PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
             return nullptr;
@@ -45,7 +45,7 @@ PyMODINIT_FUNC PyInit_IRComponents (void) {
     for (auto [api, name] : api_table) {
         if (false == add_capsule(api, name, nullptr, new_module, object_list)) {
             clean_object_list(object_list);
-            std::string error_message{std::string(clp_ffi_py::ErrorMessage::object_loading_error) +
+            std::string error_message{std::string(clp_ffi_py::error_messages::object_loading_error) +
                                       std::string(name)};
             PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
             return nullptr;
