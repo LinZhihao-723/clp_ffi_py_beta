@@ -12,6 +12,7 @@ extern clp_ffi_py::components::PyMetadataCreateFuncType PyMetadata_init_from_jso
 
 PyObject* decode_preamble (PyObject* self, PyObject* args);
 PyObject* decode_next_message (PyObject* self, PyObject* args);
+PyObject* decode_next_message_with_query (PyObject* self, PyObject* args);
 } // namespace clp_ffi_py::decoder::four_byte_decoder
 
 #endif

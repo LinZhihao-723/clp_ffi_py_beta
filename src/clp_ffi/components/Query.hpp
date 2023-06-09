@@ -11,11 +11,11 @@ public:
         : m_use_and(use_and),
           m_case_sensitive(case_sensitive){};
     void add_query (std::string_view wildcard) { m_query_list.emplace_back(wildcard); }
-    [[nodiscard]] bool matches (Message const& message) const;
+    [[nodiscard]] auto matches (Message const& message) const -> bool;
 
 private:
-    [[nodiscard]] bool matches_and (Message const& message) const;
-    [[nodiscard]] bool matches_or (Message const& message) const;
+    [[nodiscard]] auto matches_and (Message const& message) const -> bool;
+    [[nodiscard]] auto matches_or (Message const& message) const -> bool;
     std::vector<std::string> m_query_list;
     bool const m_use_and;
     bool const m_case_sensitive;

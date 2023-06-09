@@ -34,6 +34,7 @@ clp_four_byte_decoder: Extension = Extension(
         "src/clp_ffi/decoder/PyDecoderBuffer.cpp",
         "src/clp_ffi/components/Message.cpp",
         "src/clp_ffi/components/Metadata.cpp",
+        "src/clp_ffi/components/Query.cpp",
         "src/clp_ffi/utilities.cpp",
     ],
     extra_compile_args=[

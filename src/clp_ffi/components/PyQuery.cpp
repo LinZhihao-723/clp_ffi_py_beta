@@ -1,6 +1,7 @@
 #include "../Python.hpp"
 
 #include "../ErrorMessage.hpp"
+#include "../utilities.hpp"
 #include "PyMessage.hpp"
 #include "PyQuery.hpp"
 
@@ -68,14 +69,19 @@ void PyQuery_dealloc (PyQuery* self) {
 }
 
 auto PyQuery_match (PyQuery* self, PyObject* args) -> PyObject* {
-    PyMessage* message;
-    auto message_ty{PyType_FromSpec(&PyMessageTy)};
-    if (!PyArg_ParseTuple(args, "O!", message_ty, &message)) {
-        Py_DECREF(message_ty);
+    PyObject* message_obj;
+    if (false == PyArg_ParseTuple(args, "O", &message_obj)) {
         return nullptr;
     }
-    Py_DECREF(message_ty);
-    bool const match_result{self->query->matches(*(message->message))};
+    Message* message{nullptr};
+    try {
+        message = reinterpret_cast<PyMessage*>(message_obj)->message;
+    } catch (std::exception const& ex) {
+        PyErr_SetString(PyExc_TypeError, ex.what());
+        return nullptr;
+    }
+    assert(message);
+    bool const match_result{self->query->matches(*message)};
     if (match_result) {
         Py_RETURN_TRUE;
     } else {

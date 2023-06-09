@@ -1,5 +1,6 @@
 #include "decoding_methods.hpp"
 #include "../Python.hpp"
+#include "../components/PyQuery.hpp"
 #include "PyDecoderBuffer.hpp"
 
 #include <string>
@@ -22,11 +23,11 @@ PyObject* decode_preamble (PyObject* self, PyObject* args) {
     PyObject* read_buffer_object{nullptr};
     if (false == PyArg_ParseTuple(args, "OO", &istream, &read_buffer_object)) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::arg_parsing_error);
-        Py_RETURN_NONE;
+        return nullptr;
     }
     if (nullptr == istream || nullptr == read_buffer_object) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::arg_nullptr_error);
-        Py_RETURN_NONE;
+        return nullptr;
     }
 
     PyDecoderBuffer* read_buffer{reinterpret_cast<PyDecoderBuffer*>(read_buffer_object)};
@@ -34,7 +35,7 @@ PyObject* decode_preamble (PyObject* self, PyObject* args) {
         PyErr_SetString(
                 PyExc_RuntimeError,
                 clp_ffi_py::error_messages::decoder::istream_empty_error);
-        Py_RETURN_NONE;
+        return nullptr;
     }
 
     bool success;
@@ -55,7 +56,7 @@ PyObject* decode_preamble (PyObject* self, PyObject* args) {
                 PyErr_SetString(
                         PyExc_RuntimeError,
                         clp_ffi_py::error_messages::decoder::istream_empty_error);
-                Py_RETURN_NONE;
+                return nullptr;
             }
             break;
         default:
@@ -63,13 +64,13 @@ PyObject* decode_preamble (PyObject* self, PyObject* args) {
                     std::string(clp_ffi_py::error_messages::decoder::ir_error_code) +
                     std::to_string(err)};
             PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
-            Py_RETURN_NONE;
+            return nullptr;
         }
     }
 
     if (false == four_byte_encoding) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::not_implemented_error);
-        Py_RETURN_NONE;
+        return nullptr;
     }
 
     ffi::ir_stream::encoded_tag_t metadata_type;
@@ -96,7 +97,7 @@ PyObject* decode_preamble (PyObject* self, PyObject* args) {
                 PyErr_SetString(
                         PyExc_RuntimeError,
                         clp_ffi_py::error_messages::decoder::istream_empty_error);
-                Py_RETURN_NONE;
+                return nullptr;
             }
             break;
         default:
@@ -104,7 +105,7 @@ PyObject* decode_preamble (PyObject* self, PyObject* args) {
                     std::string(clp_ffi_py::error_messages::decoder::ir_error_code) +
                     std::to_string(err)};
             PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
-            Py_RETURN_NONE;
+            return nullptr;
         }
     }
 
@@ -114,7 +115,7 @@ PyObject* decode_preamble (PyObject* self, PyObject* args) {
     auto metadata{PyMetadata_init_from_json(json_data, four_byte_encoding)};
     if (nullptr == metadata) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::decoder::invalid_metadata);
-        Py_RETURN_NONE;
+        return nullptr;
     }
 
     return reinterpret_cast<PyObject*>(metadata);
@@ -127,18 +128,18 @@ PyObject* decode_next_message (PyObject* self, PyObject* args) {
 
     if (false == PyArg_ParseTuple(args, "LOO", &ref_timestamp, &istream, &read_buffer_object)) {
         PyErr_SetString(PyExc_RuntimeError, error_messages::arg_parsing_error);
-        Py_RETURN_NONE;
+        return nullptr;
     }
     if (nullptr == istream || nullptr == read_buffer_object) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::arg_nullptr_error);
-        Py_RETURN_NONE;
+        return nullptr;
     }
 
     PyDecoderBuffer* read_buffer{reinterpret_cast<PyDecoderBuffer*>(read_buffer_object)};
     auto message{PyMessage_create_empty()};
     if (nullptr == message) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
-        Py_RETURN_NONE;
+        return nullptr;
     }
     ffi::epoch_time_ms_t timestamp_delta;
 
@@ -159,7 +160,7 @@ PyObject* decode_next_message (PyObject* self, PyObject* args) {
                 PyErr_SetString(
                         PyExc_RuntimeError,
                         clp_ffi_py::error_messages::decoder::istream_empty_error);
-                Py_RETURN_NONE;
+                return nullptr;
             }
             break;
         case ffi::ir_stream::IRErrorCode_Eof:
@@ -170,8 +171,74 @@ PyObject* decode_next_message (PyObject* self, PyObject* args) {
             std::string error_message{
                     std::string(clp_ffi_py::error_messages::decoder::ir_error_code) +
                     std::to_string(err)};
+            Py_DECREF(message);
             PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
+            return nullptr;
+        }
+    }
+}
+
+PyObject* decode_next_message_with_query (PyObject* self, PyObject* args) {
+    ffi::epoch_time_ms_t ref_timestamp;
+    PyObject* istream{nullptr};
+    PyObject* read_buffer_object{nullptr};
+    PyObject* query_obj{nullptr};
+
+    if (false ==
+        PyArg_ParseTuple(args, "LOOO", &ref_timestamp, &istream, &read_buffer_object, &query_obj)) {
+        PyErr_SetString(PyExc_RuntimeError, error_messages::arg_parsing_error);
+        return nullptr;
+    }
+    if (nullptr == istream || nullptr == read_buffer_object || nullptr == query_obj) {
+        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::arg_nullptr_error);
+        return nullptr;
+    }
+
+    PyDecoderBuffer* read_buffer{reinterpret_cast<PyDecoderBuffer*>(read_buffer_object)};
+    auto query{reinterpret_cast<clp_ffi_py::components::PyQuery*>(query_obj)};
+    auto message{PyMessage_create_empty()};
+    if (nullptr == message) {
+        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
+        return nullptr;
+    }
+
+    clp_ffi_py::components::Message decoded_message;
+    while (true) {
+        auto [buf_data, buf_size] = read_buffer->get_ir_buffer();
+        ffi::ir_stream::IrBuffer ir_buffer{buf_data, buf_size};
+        auto err{ffi::ir_stream::four_byte_encoding::decode_next_message(
+                ir_buffer,
+                decoded_message.get_message_ref(),
+                decoded_message.get_timestamp_ref())};
+        switch (err) {
+        case ffi::ir_stream::IRErrorCode_Success:
+            ref_timestamp += decoded_message.get_timestamp_ref();
+            read_buffer->cursor_pos += ir_buffer.get_cursor_pos();
+            if (false == query->query->matches(decoded_message)) {
+                continue;
+            }
+            message->message->get_message_ref() = decoded_message.get_message_ref();
+            message->message->get_timestamp_ref() = ref_timestamp;
+            return reinterpret_cast<PyObject*>(message);
+        case ffi::ir_stream::IRErrorCode_Incomplete_IR:
+            if (auto num_bytes_read{read_buffer->read_from(istream)}; 0 == num_bytes_read) {
+                PyErr_SetString(
+                        PyExc_RuntimeError,
+                        clp_ffi_py::error_messages::decoder::istream_empty_error);
+                return nullptr;
+            }
+            break;
+        case ffi::ir_stream::IRErrorCode_Eof:
+            // Reaching the end of file, return None
+            Py_DECREF(message);
             Py_RETURN_NONE;
+        default:
+            std::string error_message{
+                    std::string(clp_ffi_py::error_messages::decoder::ir_error_code) +
+                    std::to_string(err)};
+            Py_DECREF(message);
+            PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
+            return nullptr;
         }
     }
 }

@@ -1,7 +1,8 @@
 #ifndef CLP_FFI_PY_UTILITIES
 #define CLP_FFI_PY_UTILITIES
 
-#include <Python.h>
+#include "Python.hpp"
+#include <iostream>
 #include <string>
 #include <vector>
 

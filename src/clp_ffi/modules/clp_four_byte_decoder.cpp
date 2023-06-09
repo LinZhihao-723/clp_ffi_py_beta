@@ -13,6 +13,10 @@ static PyMethodDef DecoderMethods[] = {
          clp_ffi_py::decoder::four_byte_decoder::decode_next_message,
          METH_VARARGS,
          "Decode next messaage and return a PyMessage object."},
+        {"decode_next_message_with_query",
+         clp_ffi_py::decoder::four_byte_decoder::decode_next_message_with_query,
+         METH_VARARGS,
+         "Decode next messaage and return a PyMessage object that matches the given query."},
         {NULL, NULL, 0, NULL}};
 
 static struct PyModuleDef clp_four_byte_decoder =

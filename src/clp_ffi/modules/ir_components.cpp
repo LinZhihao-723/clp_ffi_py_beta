@@ -35,7 +35,8 @@ PyMODINIT_FUNC PyInit_IRComponents (void) {
     object_list.push_back(new_module);
 
     for (auto [type, type_name] : type_table) {
-        if (false == add_type(PyType_FromSpec(type), type_name, new_module, object_list)) {
+        auto py_type{PyType_FromSpec(type)};
+        if (false == add_type(py_type, type_name, new_module, object_list)) {
             clean_object_list(object_list);
             std::string error_message{
                     std::string(clp_ffi_py::error_messages::object_loading_error) +
