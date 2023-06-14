@@ -18,11 +18,28 @@ jobs:
         with:
           submodules: recursive
 
+<<<<<<< HEAD
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.12.3
         env:
+=======
+      - name: Set up QEMU
+        if: runner.os == 'Linux'
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: all
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.12.3
+        env:
+          CIBW_ARCHS_LINUX: auto aarch64
+>>>>>>> main
           MACOSX_DEPLOYMENT_TARGET: 10.15
 
       - uses: actions/upload-artifact@v3
         with:
+<<<<<<< HEAD
           path: ./wheelhouse/*.whl
+=======
+          path: ./wheelhouse/*.whl
+>>>>>>> main
