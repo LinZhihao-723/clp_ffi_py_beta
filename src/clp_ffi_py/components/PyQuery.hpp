@@ -1,9 +1,9 @@
 #ifndef CLP_FFI_PY_PYQUERY
 #define CLP_FFI_PY_PYQUERY
 
-#include "../Python.hpp"
+#include <clp_ffi_py/Python.hpp> // Must always be included before any other header files
 
-#include "Query.hpp"
+#include <clp_ffi_py/components/Query.hpp>
 
 namespace clp_ffi_py::components {
 extern PyType_Spec PyQueryTy;

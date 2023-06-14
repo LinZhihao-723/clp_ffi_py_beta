@@ -1,10 +1,10 @@
-#include "../Python.hpp"
+#include <clp_ffi_py/Python.hpp> // Must always be included before any other header files
+#include <clp_ffi_py/components/PyMetadata.hpp>
 
-#include "../ErrorMessage.hpp"
-#include "../ExceptionFFI.hpp"
-#include "../utilities.hpp"
-#include "Metadata.hpp"
-#include "PyMetadata.hpp"
+#include <clp_ffi_py/components/Metadata.hpp>
+#include <clp_ffi_py/ErrorMessage.hpp>
+#include <clp_ffi_py/ExceptionFFI.hpp>
+#include <clp_ffi_py/utilities.hpp>
 
 namespace clp_ffi_py::components {
 PyObject* PyMetadata_new (PyTypeObject* type, PyObject* args, PyObject* kwds) {

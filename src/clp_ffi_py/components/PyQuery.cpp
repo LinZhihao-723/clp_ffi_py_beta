@@ -1,9 +1,9 @@
-#include "../Python.hpp"
+#include <clp_ffi_py/Python.hpp> // Must always be included before any other header files
+#include <clp_ffi_py/components/PyQuery.hpp>
 
-#include "../ErrorMessage.hpp"
-#include "../utilities.hpp"
-#include "PyMessage.hpp"
-#include "PyQuery.hpp"
+#include <clp_ffi_py/components/PyMessage.hpp>
+#include <clp_ffi_py/ErrorMessage.hpp>
+#include <clp_ffi_py/utilities.hpp>
 
 namespace clp_ffi_py::components {
 auto PyQuery_new (PyTypeObject* type, PyObject* args, PyObject* kwds) -> PyObject* {

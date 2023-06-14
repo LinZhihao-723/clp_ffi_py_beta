@@ -1,8 +1,8 @@
 #ifndef CLP_FFI_PY_Query
 #define CLP_FFI_PY_Query
 
-#include "Message.hpp"
 #include <vector>
+#include <clp_ffi_py/components/Message.hpp>
 
 namespace clp_ffi_py::components {
 class Query {

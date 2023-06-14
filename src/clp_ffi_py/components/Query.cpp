@@ -1,4 +1,4 @@
-#include "Query.hpp"
+#include <clp_ffi_py/components/Query.hpp>
 
 namespace clp_ffi_py::components {
 auto Query::matches(Message const& message) const -> bool {

@@ -1,10 +1,10 @@
-#include "../ErrorMessage.hpp"
-#include "../Python.hpp"
-#include "../components/PyMessage.hpp"
-#include "../components/PyMetadata.hpp"
-#include "../components/PyQuery.hpp"
-#include "../decoder/PyDecoderBuffer.hpp"
-#include "../utilities.hpp"
+#include <clp_ffi_py/Python.hpp> // Must always be included before any other header files
+
+#include <clp_ffi_py/components/PyMessage.hpp>
+#include <clp_ffi_py/components/PyMetadata.hpp>
+#include <clp_ffi_py/components/PyQuery.hpp>
+#include <clp_ffi_py/ErrorMessage.hpp>
+#include <clp_ffi_py/utilities.hpp>
 
 static struct PyModuleDef ir_module =
         {PyModuleDef_HEAD_INIT, "IRComponents", "CLP IR Components", 0, NULL};

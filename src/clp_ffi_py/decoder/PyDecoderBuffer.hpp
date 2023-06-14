@@ -1,7 +1,8 @@
 #ifndef CLP_FFI_PY_PYDECODER_BUFFER
 #define CLP_FFI_PY_PYDECODER_BUFFER
 
-#include "../Python.hpp"
+#include <clp_ffi_py/Python.hpp> // Must always be included before any other header files
+
 #include <utility>
 
 namespace clp_ffi_py::decoder {

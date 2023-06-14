@@ -1,8 +1,8 @@
-#include "../Python.hpp"
+#include <clp_ffi_py/Python.hpp> // Must always be included before any other header files
+#include <clp_ffi_py/components/PyMessage.hpp>
 
-#include "../ErrorMessage.hpp"
-#include "Message.hpp"
-#include "PyMessage.hpp"
+#include <clp_ffi_py/components/Message.hpp>
+#include <clp_ffi_py/ErrorMessage.hpp>
 
 namespace clp_ffi_py::components {
 PyObject* PyMessage_new (PyTypeObject* type, PyObject* args, PyObject* kwds) {

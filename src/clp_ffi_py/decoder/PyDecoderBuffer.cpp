@@ -1,10 +1,10 @@
-#include "../Python.hpp"
-
-#include "../ErrorMessage.hpp"
-#include "../utilities.hpp"
-#include "PyDecoderBuffer.hpp"
+#include <clp_ffi_py/Python.hpp> // Must always be included before any other header files
+#include <clp_ffi_py/decoder/PyDecoderBuffer.hpp>
 
 #include <iostream>
+
+#include <clp_ffi_py/ErrorMessage.hpp>
+#include <clp_ffi_py/utilities.hpp>
 
 namespace clp_ffi_py::decoder {
 PyObject* PyDecoderBuffer_new (PyTypeObject* type, PyObject* args, PyObject* kwds) {

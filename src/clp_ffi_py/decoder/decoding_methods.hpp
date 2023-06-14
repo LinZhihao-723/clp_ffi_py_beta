@@ -1,10 +1,10 @@
-#ifndef CLP_FFI_PY_DECODING_METHOD
-#define CLP_FFI_PY_DECODING_METHOD
+#ifndef CLP_FFI_PY_DECODING_METHODS
+#define CLP_FFI_PY_DECODING_METHODS
 
-#include "../Python.hpp"
+#include <clp_ffi_py/Python.hpp> // Must always be included before any other header files
 
-#include "../components/PyMessage.hpp"
-#include "../components/PyMetadata.hpp"
+#include <clp_ffi_py/components/PyMessage.hpp>
+#include <clp_ffi_py/components/PyMetadata.hpp>
 
 namespace clp_ffi_py::decoder::four_byte_decoder {
 extern clp_ffi_py::components::PyMessageCreateFuncType PyMessage_create_empty;

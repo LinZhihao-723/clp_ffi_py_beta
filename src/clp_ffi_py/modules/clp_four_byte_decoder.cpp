@@ -1,8 +1,9 @@
-#include "../ErrorMessage.hpp"
-#include "../Python.hpp"
-#include "../decoder/PyDecoderBuffer.hpp"
-#include "../decoder/decoding_methods.hpp"
-#include "../utilities.hpp"
+#include <clp_ffi_py/Python.hpp> // Must always be included before any other header files
+#include <clp_ffi_py/decoder/decoding_methods.hpp>
+
+#include <clp_ffi_py/decoder/PyDecoderBuffer.hpp>
+#include <clp_ffi_py/ErrorMessage.hpp>
+#include <clp_ffi_py/utilities.hpp>
 
 static PyMethodDef DecoderMethods[] = {
         {"decode_preamble",

@@ -1,13 +1,13 @@
-#include "decoding_methods.hpp"
-#include "../Python.hpp"
-#include "../components/PyQuery.hpp"
-#include "PyDecoderBuffer.hpp"
+#include <clp_ffi_py/Python.hpp> // Must always be included before any other header files
+#include <clp_ffi_py/decoder/decoding_methods.hpp>
 
+#include <clp/components/core/src/ffi/ir_stream/decoding_methods.hpp>
+#include <clp/components/core/submodules/json/single_include/nlohmann/json.hpp>
 #include <string>
 
-#include "../../clp/components/core/src/ffi/ir_stream/decoding_methods.hpp"
-#include "../../clp/components/core/submodules/json/single_include/nlohmann/json.hpp"
-#include "../ErrorMessage.hpp"
+#include <clp_ffi_py/components/PyQuery.hpp>
+#include <clp_ffi_py/decoder/PyDecoderBuffer.hpp>
+#include <clp_ffi_py/ErrorMessage.hpp>
 
 static inline Py_ssize_t
 populate_buffer (clp_ffi_py::decoder::PyDecoderBuffer* buffer, PyObject* istream) {

@@ -1,10 +1,10 @@
 #ifndef CLP_FFI_PY_PYMETADATA
 #define CLP_FFI_PY_PYMETADATA
 
-#include "../Python.hpp"
+#include <clp_ffi_py/Python.hpp> // Must always be included before any other header files
 
-#include "../../clp/components/core/submodules/json/single_include/nlohmann/json.hpp"
-#include "Metadata.hpp"
+#include <clp/components/core/submodules/json/single_include/nlohmann/json.hpp>
+#include <clp_ffi_py/components/Metadata.hpp>
 
 namespace clp_ffi_py::components {
 extern PyType_Spec PyMetadataTy;

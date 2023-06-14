@@ -1,10 +1,8 @@
 #ifndef CLP_FFI_PY_MESSAGE
 #define CLP_FFI_PY_MESSAGE
 
-#include "../../clp/components/core/src/ffi/encoding_methods.hpp"
-#include "../../clp/components/core/src/string_utils.hpp"
-
-#include "Metadata.hpp"
+#include <clp/components/core/src/ffi/encoding_methods.hpp>
+#include <clp/components/core/src/string_utils.hpp>
 
 namespace clp_ffi_py::components {
 class Message {
