@@ -7,7 +7,7 @@
 #include <clp_ffi_py/utilities.hpp>
 
 namespace clp_ffi_py::decoder {
-PyObject* PyDecoderBuffer_new (PyTypeObject* type, PyObject* args, PyObject* kwds) {
+PyObject* PyDecoderBuffer_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
     PyDecoderBuffer* self{reinterpret_cast<PyDecoderBuffer*>(type->tp_alloc(type, 0))};
     if (nullptr == self) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
@@ -27,7 +27,7 @@ PyObject* PyDecoderBuffer_new (PyTypeObject* type, PyObject* args, PyObject* kwd
     return reinterpret_cast<PyObject*>(self);
 }
 
-void PyDecoderBuffer_dealloc (PyDecoderBuffer* self) {
+void PyDecoderBuffer_dealloc(PyDecoderBuffer* self) {
     PyMem_Free(self->buf);
     Py_TYPE(self)->tp_free(reinterpret_cast<PyObject*>(self));
 }
@@ -84,7 +84,7 @@ Py_ssize_t PyDecoderBuffer::read_from(PyObject* istream) {
     return num_bytes_read;
 }
 
-PyObject* PyDecoderBuffer_read_from (PyDecoderBuffer* self, PyObject* args) {
+PyObject* PyDecoderBuffer_read_from(PyDecoderBuffer* self, PyObject* args) {
     PyObject* istream;
     if (!PyArg_ParseTuple(args, "O", &istream)) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::arg_parsing_error);
@@ -95,7 +95,7 @@ PyObject* PyDecoderBuffer_read_from (PyDecoderBuffer* self, PyObject* args) {
     return py_integer;
 }
 
-PyObject* PyDecoderBuffer_dump (PyDecoderBuffer* self) {
+PyObject* PyDecoderBuffer_dump(PyDecoderBuffer* self) {
     assert(self);
     assert(self->buf);
     std::cerr << "Cursor position: " << self->cursor_pos << "\n";
@@ -109,14 +109,14 @@ PyObject* PyDecoderBuffer_dump (PyDecoderBuffer* self) {
     Py_RETURN_NONE;
 }
 
-int PyDecoderBuffer_getbuffer (PyDecoderBuffer* self, Py_buffer* view, int flags) {
+int PyDecoderBuffer_getbuffer(PyDecoderBuffer* self, Py_buffer* view, int flags) {
     assert(self->buf);
     auto const length{self->buf_capacity - self->buf_size};
     auto const data{self->buf + self->buf_size};
     return PyBuffer_FillInfo(view, reinterpret_cast<PyObject*>(self), data, length, 0, flags);
 }
 
-void PyDecoderBuffer_releasebuffer (PyDecoderBuffer* self, Py_buffer* view) {
+void PyDecoderBuffer_releasebuffer(PyDecoderBuffer* self, Py_buffer* view) {
     // Doesn't do anything
 }
 
@@ -144,13 +144,13 @@ static PyType_Slot PyDecoderBuffer_slots[]{
         {0, nullptr}};
 
 static PyType_Spec PyDecoderBufferTy{
-        "IRComponents.DecoderBuffer",
+        "CLPIRDecoder.DecoderBuffer",
         sizeof(PyDecoderBuffer),
         0,
         Py_TPFLAGS_DEFAULT,
         PyDecoderBuffer_slots};
 
-PyObject* PyDecoderBuffer_get_PyType () {
+PyObject* PyDecoderBuffer_get_PyType() {
     auto type_object{PyType_FromSpec(&PyDecoderBufferTy)};
     auto type = reinterpret_cast<PyTypeObject*>(type_object);
     type->tp_as_buffer = &PyDecoderBuffer_as_buffer;

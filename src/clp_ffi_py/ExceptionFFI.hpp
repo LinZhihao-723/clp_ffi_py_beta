@@ -16,7 +16,7 @@ public:
         : TraceableException(error_code, filename, line_number),
           m_message(std::move(message)) {}
     // Methods
-    [[nodiscard]] char const* what () const noexcept override { return m_message.c_str(); }
+    [[nodiscard]] char const* what() const noexcept override { return m_message.c_str(); }
 
 private:
     std::string m_message;

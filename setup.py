@@ -24,8 +24,8 @@ clp_four_byte_encoder: Extension = Extension(
     ]
 )
 
-clp_four_byte_decoder: Extension = Extension(
-    name="clp_ffi_py.CLPFourByteDecoder",
+clp_ir_decoder: Extension = Extension(
+    name="clp_ffi_py.CLPIRDecoder",
     language="c++",
     include_dirs=[
         "src"
@@ -35,12 +35,15 @@ clp_four_byte_decoder: Extension = Extension(
         "src/clp/components/core/src/ffi/encoding_methods.cpp",
         "src/clp/components/core/src/string_utils.cpp",
         "src/clp/components/core/src/ffi/ir_stream/decoding_methods.cpp",
-        "src/clp_ffi_py/modules/clp_four_byte_decoder.cpp",
+        "src/clp_ffi_py/modules/clp_ir_decoder.cpp",
         "src/clp_ffi_py/decoder/decoding_methods.cpp",
         "src/clp_ffi_py/decoder/PyDecoderBuffer.cpp",
-        "src/clp_ffi_py/components/Message.cpp",
-        "src/clp_ffi_py/components/Metadata.cpp",
-        "src/clp_ffi_py/components/Query.cpp",
+        "src/clp_ffi_py/decoder/Message.cpp",
+        "src/clp_ffi_py/decoder/Metadata.cpp",
+        "src/clp_ffi_py/decoder/PyMessage.cpp",
+        "src/clp_ffi_py/decoder/PyMetadata.cpp",
+        "src/clp_ffi_py/decoder/PyQuery.cpp",
+        "src/clp_ffi_py/decoder/Query.cpp",
         "src/clp_ffi_py/utilities.cpp",
     ],
     extra_compile_args=[
@@ -62,12 +65,12 @@ ir: Extension = Extension(
         "src/clp/components/core/src/TraceableException.cpp",
         "src/clp/components/core/src/string_utils.cpp",
         "src/clp_ffi_py/modules/ir_components.cpp",
-        "src/clp_ffi_py/components/Message.cpp",
-        "src/clp_ffi_py/components/Metadata.cpp",
-        "src/clp_ffi_py/components/PyMessage.cpp",
-        "src/clp_ffi_py/components/PyMetadata.cpp",
-        "src/clp_ffi_py/components/PyQuery.cpp",
-        "src/clp_ffi_py/components/Query.cpp",
+        "src/clp_ffi_py/decoder/Message.cpp",
+        "src/clp_ffi_py/decoder/Metadata.cpp",
+        "src/clp_ffi_py/decoder/PyMessage.cpp",
+        "src/clp_ffi_py/decoder/PyMetadata.cpp",
+        "src/clp_ffi_py/decoder/PyQuery.cpp",
+        "src/clp_ffi_py/decoder/Query.cpp",
         "src/clp_ffi_py/utilities.cpp",
     ],
     extra_compile_args=[
@@ -83,6 +86,6 @@ ir: Extension = Extension(
 setup(
     name="clp_ffi_py",
     description="CLP FFI Python Interface",
-    ext_modules=[clp_four_byte_decoder, clp_four_byte_encoder, ir],
+    ext_modules=[clp_ir_decoder, clp_four_byte_encoder],
     packages=["clp_ffi_py"],
 )

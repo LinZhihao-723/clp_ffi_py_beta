@@ -3,13 +3,13 @@
 
 #include "utilities.hpp"
 
-void clean_object_list (std::vector<PyObject*>& object_list) {
+void clean_object_list(std::vector<PyObject*>& object_list) {
     for (auto type : object_list) {
         Py_DECREF(type);
     }
 }
 
-bool add_type (
+bool add_type(
         PyObject* new_type,
         char const* type_name,
         PyObject* module,
@@ -25,7 +25,7 @@ bool add_type (
     return true;
 }
 
-bool add_capsule (
+bool add_capsule(
         void* ptr,
         char const* name,
         PyCapsule_Destructor destructor,
@@ -42,12 +42,12 @@ bool add_capsule (
     return true;
 }
 
-void* get_capsule (PyObject* module, char const* key) {
+void* get_capsule(PyObject* module, char const* key) {
     auto capsule{PyObject_GetAttrString(module, key)};
     void* retval{PyCapsule_GetPointer(capsule, key)};
     return retval;
 }
 
-void debug_message (std::string const& msg) {
+void debug_message(std::string const& msg) {
     std::cerr << msg << "\n";
 }

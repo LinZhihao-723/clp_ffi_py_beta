@@ -1,13 +1,13 @@
 #include <clp_ffi_py/Python.hpp> // Must always be included before any other header files
-#include <clp_ffi_py/components/PyMetadata.hpp>
+#include <clp_ffi_py/decoder/PyMetadata.hpp>
 
-#include <clp_ffi_py/components/Metadata.hpp>
 #include <clp_ffi_py/ErrorMessage.hpp>
 #include <clp_ffi_py/ExceptionFFI.hpp>
+#include <clp_ffi_py/decoder/Metadata.hpp>
 #include <clp_ffi_py/utilities.hpp>
 
-namespace clp_ffi_py::components {
-PyObject* PyMetadata_new (PyTypeObject* type, PyObject* args, PyObject* kwds) {
+namespace clp_ffi_py::decoder {
+PyObject* PyMetadata_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
     // Since tp_alloc returns <PyObject*>, we cannot use static_cast to cast it
     // to <PyMetadata*>. A C-style casting is expected (reinterpret_cast).
     PyMetadata* self{reinterpret_cast<PyMetadata*>(type->tp_alloc(type, 0))};
@@ -19,7 +19,7 @@ PyObject* PyMetadata_new (PyTypeObject* type, PyObject* args, PyObject* kwds) {
     return reinterpret_cast<PyObject*>(self);
 }
 
-int PyMetadata_init (PyMetadata* self, PyObject* args, PyObject* kwds) {
+int PyMetadata_init(PyMetadata* self, PyObject* args, PyObject* kwds) {
     ffi::epoch_time_ms_t ref_timestamp;
     char const* input_timestamp_format;
     char const* input_timezone;
@@ -41,12 +41,12 @@ int PyMetadata_init (PyMetadata* self, PyObject* args, PyObject* kwds) {
     return 0;
 }
 
-void PyMetadata_dealloc (PyMetadata* self) {
+void PyMetadata_dealloc(PyMetadata* self) {
     delete self->metadata;
     Py_TYPE(self)->tp_free(reinterpret_cast<PyObject*>(self));
 }
 
-PyObject* PyMetadata_is_using_four_byte_encoding (PyMetadata* self) {
+PyObject* PyMetadata_is_using_four_byte_encoding(PyMetadata* self) {
     assert(self->metadata);
     if (self->metadata->is_using_four_byte_encoding()) {
         Py_RETURN_TRUE;
@@ -55,25 +55,24 @@ PyObject* PyMetadata_is_using_four_byte_encoding (PyMetadata* self) {
     }
 }
 
-PyObject* PyMetadata_get_ref_timestamp (PyMetadata* self) {
+PyObject* PyMetadata_get_ref_timestamp(PyMetadata* self) {
     assert(self->metadata);
     return PyLong_FromLongLong(self->metadata->get_ref_timestamp());
 }
 
-PyObject* PyMetadata_get_timestamp_format (PyMetadata* self) {
+PyObject* PyMetadata_get_timestamp_format(PyMetadata* self) {
     assert(self->metadata);
     return PyUnicode_FromString(self->metadata->get_timestamp_format().c_str());
 }
 
-PyObject* PyMetadata_get_timezone (PyMetadata* self) {
+PyObject* PyMetadata_get_timezone(PyMetadata* self) {
     assert(self->metadata);
     return PyUnicode_FromString(self->metadata->get_timezone().c_str());
 }
 
-PyMetadata* PyMetadata_init_from_json (nlohmann::json const& metadata, bool is_four_byte_encoding) {
+PyMetadata* PyMetadata_init_from_json(nlohmann::json const& metadata, bool is_four_byte_encoding) {
     PyMetadata* self{reinterpret_cast<PyMetadata*>(PyObject_New(
-            PyMetadata,
-            reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyMetadataTy))))};
+            PyMetadata, PyMetadataTy))};
     if (nullptr == self) {
         return nullptr;
     }
@@ -115,10 +114,21 @@ static PyType_Slot PyMetadata_slots[]{
         {Py_tp_new, reinterpret_cast<void*>(PyMetadata_new)},
         {0, nullptr}};
 
-PyType_Spec PyMetadataTy{
-        "IRComponents.Metadata",
+static PyType_Spec PyMetadata_type_spec{
+        "CLPIRDecoder.Metadata",
         sizeof(PyMetadata),
         0,
         Py_TPFLAGS_DEFAULT,
         PyMetadata_slots};
-} // namespace clp_ffi_py::components
+
+PyTypeObject* PyMetadataTy{nullptr};
+
+auto PyMetadata_module_level_init(PyObject* py_module, std::vector<PyObject*>& object_list)
+        -> bool {
+    if (nullptr != PyMetadataTy) {
+        return false;
+    }
+    PyMetadataTy = reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyMetadata_type_spec));
+    return add_type(reinterpret_cast<PyObject*>(PyMetadataTy), "Metadata", py_module, object_list);
+}
+} // namespace clp_ffi_py::decoder

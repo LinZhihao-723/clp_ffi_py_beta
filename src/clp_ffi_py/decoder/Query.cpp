@@ -1,6 +1,6 @@
-#include <clp_ffi_py/components/Query.hpp>
+#include <clp_ffi_py/decoder/Query.hpp>
 
-namespace clp_ffi_py::components {
+namespace clp_ffi_py::decoder {
 auto Query::matches(Message const& message) const -> bool {
     return m_use_and ? matches_and(message) : matches_or(message);
 }
@@ -22,4 +22,4 @@ auto Query::matches_or(Message const& message) const -> bool {
     }
     return false;
 }
-} // namespace clp_ffi_py::components
+} // namespace clp_ffi_py::decoder

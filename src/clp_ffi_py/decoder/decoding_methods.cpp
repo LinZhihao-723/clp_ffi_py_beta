@@ -5,20 +5,17 @@
 #include <clp/components/core/submodules/json/single_include/nlohmann/json.hpp>
 #include <string>
 
-#include <clp_ffi_py/components/PyQuery.hpp>
-#include <clp_ffi_py/decoder/PyDecoderBuffer.hpp>
 #include <clp_ffi_py/ErrorMessage.hpp>
+#include <clp_ffi_py/decoder/PyDecoderBuffer.hpp>
+#include <clp_ffi_py/decoder/PyQuery.hpp>
 
 static inline Py_ssize_t
-populate_buffer (clp_ffi_py::decoder::PyDecoderBuffer* buffer, PyObject* istream) {
+populate_buffer(clp_ffi_py::decoder::PyDecoderBuffer* buffer, PyObject* istream) {
     return buffer->read_from(istream);
 }
 
 namespace clp_ffi_py::decoder::four_byte_decoder {
-clp_ffi_py::components::PyMessageCreateFuncType PyMessage_create_empty = nullptr;
-clp_ffi_py::components::PyMetadataCreateFuncType PyMetadata_init_from_json = nullptr;
-
-PyObject* decode_preamble (PyObject* self, PyObject* args) {
+PyObject* decode_preamble(PyObject* self, PyObject* args) {
     PyObject* istream{nullptr};
     PyObject* read_buffer_object{nullptr};
     if (false == PyArg_ParseTuple(args, "OO", &istream, &read_buffer_object)) {
@@ -112,7 +109,7 @@ PyObject* decode_preamble (PyObject* self, PyObject* args) {
     assert(metadata_start);
     std::string json_string(reinterpret_cast<char*>(metadata_start), metadata_size);
     nlohmann::json json_data = nlohmann::json::parse(json_string);
-    auto metadata{PyMetadata_init_from_json(json_data, four_byte_encoding)};
+    auto metadata{clp_ffi_py::decoder::PyMetadata_init_from_json(json_data, four_byte_encoding)};
     if (nullptr == metadata) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::decoder::invalid_metadata);
         return nullptr;
@@ -121,7 +118,7 @@ PyObject* decode_preamble (PyObject* self, PyObject* args) {
     return reinterpret_cast<PyObject*>(metadata);
 }
 
-PyObject* decode_next_message (PyObject* self, PyObject* args) {
+PyObject* decode_next_message(PyObject* self, PyObject* args) {
     ffi::epoch_time_ms_t ref_timestamp;
     PyObject* istream{nullptr};
     PyObject* read_buffer_object{nullptr};
@@ -136,7 +133,7 @@ PyObject* decode_next_message (PyObject* self, PyObject* args) {
     }
 
     PyDecoderBuffer* read_buffer{reinterpret_cast<PyDecoderBuffer*>(read_buffer_object)};
-    auto message{PyMessage_create_empty()};
+    auto message{clp_ffi_py::decoder::PyMessage_create_empty()};
     if (nullptr == message) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
         return nullptr;
@@ -178,7 +175,7 @@ PyObject* decode_next_message (PyObject* self, PyObject* args) {
     }
 }
 
-PyObject* decode_next_message_with_query (PyObject* self, PyObject* args) {
+PyObject* decode_next_message_with_query(PyObject* self, PyObject* args) {
     ffi::epoch_time_ms_t ref_timestamp;
     PyObject* istream{nullptr};
     PyObject* read_buffer_object{nullptr};
@@ -195,14 +192,14 @@ PyObject* decode_next_message_with_query (PyObject* self, PyObject* args) {
     }
 
     PyDecoderBuffer* read_buffer{reinterpret_cast<PyDecoderBuffer*>(read_buffer_object)};
-    auto query{reinterpret_cast<clp_ffi_py::components::PyQuery*>(query_obj)};
-    auto message{PyMessage_create_empty()};
+    auto query{reinterpret_cast<clp_ffi_py::decoder::PyQuery*>(query_obj)};
+    auto message{clp_ffi_py::decoder::PyMessage_create_empty()};
     if (nullptr == message) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
         return nullptr;
     }
 
-    clp_ffi_py::components::Message decoded_message;
+    clp_ffi_py::decoder::Message decoded_message;
     while (true) {
         auto [buf_data, buf_size] = read_buffer->get_ir_buffer();
         ffi::ir_stream::IrBuffer ir_buffer{buf_data, buf_size};

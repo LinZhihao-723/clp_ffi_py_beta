@@ -1,12 +1,12 @@
 #include <clp_ffi_py/Python.hpp> // Must always be included before any other header files
-#include <clp_ffi_py/components/PyQuery.hpp>
+#include <clp_ffi_py/decoder/PyQuery.hpp>
 
-#include <clp_ffi_py/components/PyMessage.hpp>
 #include <clp_ffi_py/ErrorMessage.hpp>
+#include <clp_ffi_py/decoder/PyMessage.hpp>
 #include <clp_ffi_py/utilities.hpp>
 
-namespace clp_ffi_py::components {
-auto PyQuery_new (PyTypeObject* type, PyObject* args, PyObject* kwds) -> PyObject* {
+namespace clp_ffi_py::decoder {
+auto PyQuery_new(PyTypeObject* type, PyObject* args, PyObject* kwds) -> PyObject* {
     PyQuery* self{reinterpret_cast<PyQuery*>(type->tp_alloc(type, 0))};
     if (nullptr == self) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
@@ -16,7 +16,7 @@ auto PyQuery_new (PyTypeObject* type, PyObject* args, PyObject* kwds) -> PyObjec
     return reinterpret_cast<PyObject*>(self);
 }
 
-auto PyQuery_init (PyQuery* self, PyObject* args, PyObject* kwds) -> int {
+auto PyQuery_init(PyQuery* self, PyObject* args, PyObject* kwds) -> int {
     assert(nullptr == self->query);
 
     int py_use_and;
@@ -43,7 +43,7 @@ auto PyQuery_init (PyQuery* self, PyObject* args, PyObject* kwds) -> int {
 
     // Note: we don't have to deallocate self->query because dealloc function
     // will handle memory management
-    const Py_ssize_t list_size{PyList_Size(py_query_list)};
+    Py_ssize_t const list_size{PyList_Size(py_query_list)};
     for (Py_ssize_t i{0}; i < list_size; ++i) {
         PyObject* item{PyList_GetItem(py_query_list, i)};
         if (!PyUnicode_Check(item)) {
@@ -63,12 +63,12 @@ auto PyQuery_init (PyQuery* self, PyObject* args, PyObject* kwds) -> int {
     return 0;
 }
 
-void PyQuery_dealloc (PyQuery* self) {
+void PyQuery_dealloc(PyQuery* self) {
     delete self->query;
-    Py_TYPE(self)->tp_free(reinterpret_cast<PyObject*>(self));
+    PyObject_Del(self);
 }
 
-auto PyQuery_match (PyQuery* self, PyObject* args) -> PyObject* {
+auto PyQuery_match(PyQuery* self, PyObject* args) -> PyObject* {
     PyObject* message_obj;
     if (false == PyArg_ParseTuple(args, "O", &message_obj)) {
         return nullptr;
@@ -103,6 +103,20 @@ static PyType_Slot PyQuery_slots[]{
         {Py_tp_new, reinterpret_cast<void*>(PyQuery_new)},
         {0, nullptr}};
 
-PyType_Spec
-        PyQueryTy{"IRComponents.Query", sizeof(PyQueryTy), 0, Py_TPFLAGS_DEFAULT, PyQuery_slots};
-} // namespace clp_ffi_py::components
+static PyType_Spec PyQuery_type_spec{
+        "CLPIRDecoder.Query",
+        sizeof(PyQuery),
+        0,
+        Py_TPFLAGS_DEFAULT,
+        PyQuery_slots};
+
+PyTypeObject* PyQueryTy{nullptr};
+
+auto PyQuery_module_level_init(PyObject* py_module, std::vector<PyObject*>& object_list) -> bool {
+    if (nullptr != PyQueryTy) {
+        return false;
+    }
+    PyQueryTy = reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyQuery_type_spec));
+    return add_type(reinterpret_cast<PyObject*>(PyQueryTy), "Query", py_module, object_list);
+}
+} // namespace clp_ffi_py::decoder
