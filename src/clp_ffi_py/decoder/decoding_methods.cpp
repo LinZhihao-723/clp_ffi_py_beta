@@ -118,6 +118,54 @@ PyObject* decode_preamble(PyObject* self, PyObject* args) {
     return reinterpret_cast<PyObject*>(metadata);
 }
 
+static auto
+decode(ffi::epoch_time_ms_t ref_timestamp,
+       PyObject* istream,
+       PyDecoderBuffer* read_buffer,
+       PyQuery* query) -> PyObject* {
+    std::string decoded_message;
+    ffi::epoch_time_ms_t timestamp_delta;
+    while (true) {
+        auto [buf_data, buf_size] = read_buffer->get_ir_buffer();
+        ffi::ir_stream::IrBuffer ir_buffer{buf_data, buf_size};
+        auto err{ffi::ir_stream::four_byte_encoding::decode_next_message(
+                ir_buffer,
+                decoded_message,
+                timestamp_delta)};
+        switch (err) {
+        case ffi::ir_stream::IRErrorCode_Success:
+            ref_timestamp += timestamp_delta;
+            read_buffer->increment_cursor(ir_buffer.get_cursor_pos());
+            read_buffer->increment_num_decoded_message();
+            if (nullptr != query &&
+                false == query->query->matches(std::string_view(decoded_message))) {
+                continue;
+            }
+            return reinterpret_cast<PyObject*>(PyMessage_create_new(
+                    decoded_message,
+                    ref_timestamp,
+                    read_buffer->get_num_decoded_message() - 1));
+        case ffi::ir_stream::IRErrorCode_Incomplete_IR:
+            if (auto num_bytes_read{read_buffer->read_from(istream)}; 0 == num_bytes_read) {
+                PyErr_SetString(
+                        PyExc_RuntimeError,
+                        clp_ffi_py::error_messages::decoder::istream_empty_error);
+                return nullptr;
+            }
+            break;
+        case ffi::ir_stream::IRErrorCode_Eof:
+            // Reaching the end of file, return None
+            Py_RETURN_NONE;
+        default:
+            std::string error_message{
+                    std::string(clp_ffi_py::error_messages::decoder::ir_error_code) +
+                    std::to_string(err)};
+            PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
+            return nullptr;
+        }
+    }
+}
+
 PyObject* decode_next_message(PyObject* self, PyObject* args) {
     ffi::epoch_time_ms_t ref_timestamp;
     PyObject* istream{nullptr};
@@ -133,46 +181,7 @@ PyObject* decode_next_message(PyObject* self, PyObject* args) {
     }
 
     PyDecoderBuffer* read_buffer{reinterpret_cast<PyDecoderBuffer*>(read_buffer_object)};
-    auto message{clp_ffi_py::decoder::PyMessage_create_empty()};
-    if (nullptr == message) {
-        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
-        return nullptr;
-    }
-    ffi::epoch_time_ms_t timestamp_delta;
-
-    while (true) {
-        auto [buf_data, buf_size] = read_buffer->get_ir_buffer();
-        ffi::ir_stream::IrBuffer ir_buffer{buf_data, buf_size};
-        auto err{ffi::ir_stream::four_byte_encoding::decode_next_message(
-                ir_buffer,
-                message->message->get_message_ref(),
-                timestamp_delta)};
-        switch (err) {
-        case ffi::ir_stream::IRErrorCode_Success:
-            read_buffer->cursor_pos += ir_buffer.get_cursor_pos();
-            message->message->set_timestamp(ref_timestamp + timestamp_delta);
-            return reinterpret_cast<PyObject*>(message);
-        case ffi::ir_stream::IRErrorCode_Incomplete_IR:
-            if (auto num_bytes_read{read_buffer->read_from(istream)}; 0 == num_bytes_read) {
-                PyErr_SetString(
-                        PyExc_RuntimeError,
-                        clp_ffi_py::error_messages::decoder::istream_empty_error);
-                return nullptr;
-            }
-            break;
-        case ffi::ir_stream::IRErrorCode_Eof:
-            // Reaching the end of file, return None
-            Py_DECREF(message);
-            Py_RETURN_NONE;
-        default:
-            std::string error_message{
-                    std::string(clp_ffi_py::error_messages::decoder::ir_error_code) +
-                    std::to_string(err)};
-            Py_DECREF(message);
-            PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
-            return nullptr;
-        }
-    }
+    return decode(ref_timestamp, istream, read_buffer, nullptr);
 }
 
 PyObject* decode_next_message_with_query(PyObject* self, PyObject* args) {
@@ -191,52 +200,17 @@ PyObject* decode_next_message_with_query(PyObject* self, PyObject* args) {
         return nullptr;
     }
 
-    PyDecoderBuffer* read_buffer{reinterpret_cast<PyDecoderBuffer*>(read_buffer_object)};
-    auto query{reinterpret_cast<clp_ffi_py::decoder::PyQuery*>(query_obj)};
-    auto message{clp_ffi_py::decoder::PyMessage_create_empty()};
-    if (nullptr == message) {
-        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
-        return nullptr;
-    }
-
-    clp_ffi_py::decoder::Message decoded_message;
-    while (true) {
-        auto [buf_data, buf_size] = read_buffer->get_ir_buffer();
-        ffi::ir_stream::IrBuffer ir_buffer{buf_data, buf_size};
-        auto err{ffi::ir_stream::four_byte_encoding::decode_next_message(
-                ir_buffer,
-                decoded_message.get_message_ref(),
-                decoded_message.get_timestamp_ref())};
-        switch (err) {
-        case ffi::ir_stream::IRErrorCode_Success:
-            ref_timestamp += decoded_message.get_timestamp_ref();
-            read_buffer->cursor_pos += ir_buffer.get_cursor_pos();
-            if (false == query->query->matches(decoded_message)) {
-                continue;
-            }
-            message->message->get_message_ref() = decoded_message.get_message_ref();
-            message->message->get_timestamp_ref() = ref_timestamp;
-            return reinterpret_cast<PyObject*>(message);
-        case ffi::ir_stream::IRErrorCode_Incomplete_IR:
-            if (auto num_bytes_read{read_buffer->read_from(istream)}; 0 == num_bytes_read) {
-                PyErr_SetString(
-                        PyExc_RuntimeError,
-                        clp_ffi_py::error_messages::decoder::istream_empty_error);
-                return nullptr;
-            }
-            break;
-        case ffi::ir_stream::IRErrorCode_Eof:
-            // Reaching the end of file, return None
-            Py_DECREF(message);
-            Py_RETURN_NONE;
-        default:
-            std::string error_message{
-                    std::string(clp_ffi_py::error_messages::decoder::ir_error_code) +
-                    std::to_string(err)};
-            Py_DECREF(message);
-            PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
+    clp_ffi_py::decoder::PyQuery* query{nullptr};
+    if (Py_None != query_obj) {
+        if (PyType_IsSubtype(Py_TYPE(query_obj), PyQuery_get_PyType())) {
+            query = reinterpret_cast<clp_ffi_py::decoder::PyQuery*>(query_obj);
+        } else {
+            PyErr_SetString(PyExc_TypeError, clp_ffi_py::error_messages::py_type_error);
             return nullptr;
         }
     }
+
+    PyDecoderBuffer* read_buffer{reinterpret_cast<PyDecoderBuffer*>(read_buffer_object)};
+    return decode(ref_timestamp, istream, read_buffer, query);
 }
 } // namespace clp_ffi_py::decoder::four_byte_decoder

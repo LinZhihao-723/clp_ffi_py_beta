@@ -24,6 +24,7 @@ PyObject* PyDecoderBuffer_new(PyTypeObject* type, PyObject* args, PyObject* kwds
     self->buf_capacity = initial_capacity;
     self->buf_size = 0;
     self->cursor_pos = 0;
+    self->num_decoded_message = 0;
 
     return reinterpret_cast<PyObject*>(self);
 }

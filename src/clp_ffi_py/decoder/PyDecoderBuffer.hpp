@@ -14,11 +14,16 @@ struct PyDecoderBuffer {
     Py_ssize_t cursor_pos;
     Py_ssize_t buf_size;
     Py_ssize_t buf_capacity;
+    size_t num_decoded_message;
 
     [[nodiscard]] Py_ssize_t read_from(PyObject* istream);
     [[nodiscard]] std::pair<int8_t*, size_t> get_ir_buffer() {
         return {buf + cursor_pos, buf_size - cursor_pos};
     }
+
+    size_t get_num_decoded_message() const { return num_decoded_message; }
+    void increment_num_decoded_message() { ++num_decoded_message; }
+    void increment_cursor(size_t offset) { cursor_pos += static_cast<Py_ssize_t>(offset); }
 
 private:
     void grow_and_shift();

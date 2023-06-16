@@ -17,7 +17,7 @@ bool add_type(
         PyObject* module,
         std::vector<PyObject*>& object_list) {
     if (nullptr == new_type) {
-        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
+        PyErr_SetString(PyExc_MemoryError, clp_ffi_py::error_messages::out_of_memory_error);
         return false;
     }
     object_list.push_back(new_type);

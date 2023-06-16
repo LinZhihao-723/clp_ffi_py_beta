@@ -36,6 +36,11 @@ PyObject* PyMessage_get_timestamp(PyMessage* self) {
     return PyLong_FromLongLong(self->message->get_timestamp_ref());
 }
 
+PyObject* PyMessage_get_message_idx(PyMessage* self) {
+    assert(self->message);
+    return PyLong_FromLongLong(self->message->get_message_idx());
+}
+
 PyMessage* PyMessage_create_empty() {
     PyMessage* self{reinterpret_cast<PyMessage*>(PyObject_New(PyMessage, PyMessage_get_PyType()))};
     if (nullptr == self) {
@@ -44,6 +49,22 @@ PyMessage* PyMessage_create_empty() {
     self->message = new Message();
     if (nullptr == self->message) {
         Py_DECREF(self);
+        return nullptr;
+    }
+    return self;
+}
+
+auto PyMessage_create_new(std::string message, ffi::epoch_time_ms_t timestamp, size_t message_idx)
+        -> PyMessage* {
+    PyMessage* self{reinterpret_cast<PyMessage*>(PyObject_New(PyMessage, PyMessage_get_PyType()))};
+    if (nullptr == self) {
+        PyErr_SetString(PyExc_MemoryError, clp_ffi_py::error_messages::out_of_memory_error);
+        return nullptr;
+    }
+    self->message = new Message(message, timestamp, message_idx);
+    if (nullptr == self->message) {
+        Py_DECREF(self);
+        PyErr_SetString(PyExc_MemoryError, clp_ffi_py::error_messages::out_of_memory_error);
         return nullptr;
     }
     return self;
@@ -86,6 +107,10 @@ static PyMethodDef PyMessage_method_table[]{
          reinterpret_cast<PyCFunction>(PyMessage_get_timestamp),
          METH_NOARGS,
          "Get timestamp as a integer."},
+        {"get_message_idx",
+         reinterpret_cast<PyCFunction>(PyMessage_get_message_idx),
+         METH_NOARGS,
+         "Get message index as a integer."},
         {"wildcard_match",
          reinterpret_cast<PyCFunction>(PyMessage_wildcard_match),
          METH_VARARGS,
