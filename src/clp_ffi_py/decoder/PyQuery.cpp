@@ -2,6 +2,7 @@
 #include <clp_ffi_py/decoder/PyQuery.hpp>
 
 #include <clp_ffi_py/ErrorMessage.hpp>
+#include <clp_ffi_py/PyObjectDeleter.hpp>
 #include <clp_ffi_py/decoder/PyMessage.hpp>
 #include <clp_ffi_py/utilities.hpp>
 
@@ -110,13 +111,23 @@ static PyType_Spec PyQuery_type_spec{
         Py_TPFLAGS_DEFAULT,
         PyQuery_slots};
 
-PyTypeObject* PyQueryTy{nullptr};
+auto PyQuery_get_PyType(bool init) -> PyTypeObject* {
+    static std::unique_ptr<PyTypeObject, PyObjectDeleter<PyTypeObject>> PyQuery_type;
+    if (init) {
+        auto type{reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyQuery_type_spec))};
+        PyQuery_type.reset(type);
+        if (nullptr != type) {
+            Py_INCREF(type);
+        }
+    }
+    return PyQuery_type.get();
+}
 
 auto PyQuery_module_level_init(PyObject* py_module, std::vector<PyObject*>& object_list) -> bool {
-    if (nullptr != PyQueryTy) {
-        return false;
-    }
-    PyQueryTy = reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyQuery_type_spec));
-    return add_type(reinterpret_cast<PyObject*>(PyQueryTy), "Query", py_module, object_list);
+    return add_type(
+            reinterpret_cast<PyObject*>(PyQuery_get_PyType(true)),
+            "Query",
+            py_module,
+            object_list);
 }
 } // namespace clp_ffi_py::decoder

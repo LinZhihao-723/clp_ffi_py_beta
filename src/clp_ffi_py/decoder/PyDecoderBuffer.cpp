@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include <clp_ffi_py/ErrorMessage.hpp>
+#include <clp_ffi_py/PyObjectDeleter.hpp>
 #include <clp_ffi_py/utilities.hpp>
 
 namespace clp_ffi_py::decoder {
@@ -143,17 +144,32 @@ static PyType_Slot PyDecoderBuffer_slots[]{
         {Py_tp_new, reinterpret_cast<void*>(PyDecoderBuffer_new)},
         {0, nullptr}};
 
-static PyType_Spec PyDecoderBufferTy{
+static PyType_Spec PyDecoderBuffer_type_spec{
         "CLPIRDecoder.DecoderBuffer",
         sizeof(PyDecoderBuffer),
         0,
         Py_TPFLAGS_DEFAULT,
         PyDecoderBuffer_slots};
 
-PyObject* PyDecoderBuffer_get_PyType() {
-    auto type_object{PyType_FromSpec(&PyDecoderBufferTy)};
-    auto type = reinterpret_cast<PyTypeObject*>(type_object);
-    type->tp_as_buffer = &PyDecoderBuffer_as_buffer;
-    return type_object;
+auto PyDecoderBuffer_get_PyType(bool init) -> PyTypeObject* {
+    static std::unique_ptr<PyTypeObject, PyObjectDeleter<PyTypeObject>> PyDecoderBuffer_type;
+    if (init) {
+        auto type{reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyDecoderBuffer_type_spec))};
+        PyDecoderBuffer_type.reset(type);
+        if (nullptr != type) {
+            type->tp_as_buffer = &PyDecoderBuffer_as_buffer;
+            Py_INCREF(type);
+        }
+    }
+    return PyDecoderBuffer_type.get();
+}
+
+auto PyDecoderBuffer_module_level_init(PyObject* py_module, std::vector<PyObject*>& object_list)
+        -> bool {
+    return add_type(
+            reinterpret_cast<PyObject*>(PyDecoderBuffer_get_PyType(true)),
+            "DecoderBuffer",
+            py_module,
+            object_list);
 }
 } // namespace clp_ffi_py::decoder

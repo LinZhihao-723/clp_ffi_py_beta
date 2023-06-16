@@ -3,6 +3,7 @@
 
 #include <clp_ffi_py/ErrorMessage.hpp>
 #include <clp_ffi_py/ExceptionFFI.hpp>
+#include <clp_ffi_py/PyObjectDeleter.hpp>
 #include <clp_ffi_py/decoder/Metadata.hpp>
 #include <clp_ffi_py/utilities.hpp>
 
@@ -71,8 +72,8 @@ PyObject* PyMetadata_get_timezone(PyMetadata* self) {
 }
 
 PyMetadata* PyMetadata_init_from_json(nlohmann::json const& metadata, bool is_four_byte_encoding) {
-    PyMetadata* self{reinterpret_cast<PyMetadata*>(PyObject_New(
-            PyMetadata, PyMetadataTy))};
+    PyMetadata* self{
+            reinterpret_cast<PyMetadata*>(PyObject_New(PyMetadata, PyMetadata_get_PyType()))};
     if (nullptr == self) {
         return nullptr;
     }
@@ -121,14 +122,24 @@ static PyType_Spec PyMetadata_type_spec{
         Py_TPFLAGS_DEFAULT,
         PyMetadata_slots};
 
-PyTypeObject* PyMetadataTy{nullptr};
+auto PyMetadata_get_PyType(bool init) -> PyTypeObject* {
+    static std::unique_ptr<PyTypeObject, PyObjectDeleter<PyTypeObject>> PyMetadata_type;
+    if (init) {
+        auto type{reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyMetadata_type_spec))};
+        PyMetadata_type.reset(type);
+        if (nullptr != type) {
+            Py_INCREF(type);
+        }
+    }
+    return PyMetadata_type.get();
+}
 
 auto PyMetadata_module_level_init(PyObject* py_module, std::vector<PyObject*>& object_list)
         -> bool {
-    if (nullptr != PyMetadataTy) {
-        return false;
-    }
-    PyMetadataTy = reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyMetadata_type_spec));
-    return add_type(reinterpret_cast<PyObject*>(PyMetadataTy), "Metadata", py_module, object_list);
+    return add_type(
+            reinterpret_cast<PyObject*>(PyMetadata_get_PyType(true)),
+            "Metadata",
+            py_module,
+            object_list);
 }
 } // namespace clp_ffi_py::decoder

@@ -2,6 +2,7 @@
 #include <clp_ffi_py/decoder/PyMessage.hpp>
 
 #include <clp_ffi_py/ErrorMessage.hpp>
+#include <clp_ffi_py/PyObjectDeleter.hpp>
 #include <clp_ffi_py/decoder/Message.hpp>
 
 namespace clp_ffi_py::decoder {
@@ -36,7 +37,7 @@ PyObject* PyMessage_get_timestamp(PyMessage* self) {
 }
 
 PyMessage* PyMessage_create_empty() {
-    PyMessage* self{reinterpret_cast<PyMessage*>(PyObject_New(PyMessage, PyMessageTy))};
+    PyMessage* self{reinterpret_cast<PyMessage*>(PyObject_New(PyMessage, PyMessage_get_PyType()))};
     if (nullptr == self) {
         return nullptr;
     }
@@ -109,14 +110,24 @@ static PyType_Spec PyMessage_type_spec{
         Py_TPFLAGS_DEFAULT,
         PyMessage_slots};
 
-PyTypeObject* PyMessageTy{nullptr};
+auto PyMessage_get_PyType(bool init) -> PyTypeObject* {
+    static std::unique_ptr<PyTypeObject, PyObjectDeleter<PyTypeObject>> PyMessage_type;
+    if (init) {
+        auto type{reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyMessage_type_spec))};
+        PyMessage_type.reset(type);
+        if (nullptr != type) {
+            Py_INCREF(type);
+        }
+    }
+    return PyMessage_type.get();
+}
 
 auto PyMessageTy_module_level_init(PyObject* py_module, std::vector<PyObject*>& object_list)
         -> bool {
-    if (nullptr != PyMessageTy) {
-        return false;
-    }
-    PyMessageTy = reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyMessage_type_spec));
-    return add_type(reinterpret_cast<PyObject*>(PyMessageTy), "Message", py_module, object_list);
+    return add_type(
+            reinterpret_cast<PyObject*>(PyMessage_get_PyType(true)),
+            "Message",
+            py_module,
+            object_list);
 }
 } // namespace clp_ffi_py::decoder

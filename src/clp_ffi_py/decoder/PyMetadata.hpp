@@ -7,8 +7,6 @@
 #include <clp_ffi_py/decoder/Metadata.hpp>
 
 namespace clp_ffi_py::decoder {
-extern PyTypeObject* PyMetadataTy;
-
 struct PyMetadata {
     PyObject_HEAD;
     Metadata* metadata;
@@ -24,6 +22,7 @@ PyObject* PyMetadata_get_timezone(PyMetadata* self);
 
 PyMetadata* PyMetadata_init_from_json(nlohmann::json const& metadata, bool is_four_byte_encoding);
 auto PyMetadata_module_level_init(PyObject* py_module, std::vector<PyObject*>& object_list) -> bool;
+auto PyMetadata_get_PyType(bool init = false) -> PyTypeObject*;
 } // namespace clp_ffi_py::decoder
 
 #endif

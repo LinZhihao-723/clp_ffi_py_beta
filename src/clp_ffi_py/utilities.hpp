@@ -1,7 +1,8 @@
 #ifndef CLP_FFI_PY_UTILITIES
 #define CLP_FFI_PY_UTILITIES
 
-#include "Python.hpp"
+#include <clp_ffi_py/Python.hpp> // Must always be included before any other header files
+
 #include <iostream>
 #include <string>
 #include <vector>

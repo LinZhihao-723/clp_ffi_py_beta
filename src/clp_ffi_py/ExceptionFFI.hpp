@@ -1,7 +1,8 @@
 #ifndef CLP_FFI_PY_EXCEPTION_FFI
 #define CLP_FFI_PY_EXCEPTION_FFI
 
-#include "../clp/components/core/src/TraceableException.hpp"
+#include <clp/components/core/src/TraceableException.hpp>
+
 #include <string>
 
 namespace clp_ffi_py {

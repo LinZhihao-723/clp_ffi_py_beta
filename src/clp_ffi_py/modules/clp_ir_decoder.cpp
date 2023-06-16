@@ -40,38 +40,23 @@ PyMODINIT_FUNC PyInit_CLPIRDecoder(void) {
     object_list.push_back(new_module);
 
     // Add the type
-    auto new_type{clp_ffi_py::decoder::PyDecoderBuffer_get_PyType()};
-    char const* type_name = "DecoderBuffer";
-    if (false == add_type(new_type, type_name, new_module, object_list)) {
+    if (false == clp_ffi_py::decoder::PyDecoderBuffer_module_level_init(new_module, object_list)) {
         clean_object_list(object_list);
-        std::string error_message{
-                std::string(clp_ffi_py::error_messages::object_loading_error) +
-                std::string(type_name)};
-        PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
         return nullptr;
     }
 
     if (false == clp_ffi_py::decoder::PyMetadata_module_level_init(new_module, object_list)) {
         clean_object_list(object_list);
-        std::string error_message{
-                std::string(clp_ffi_py::error_messages::object_loading_error) + "Metadata"};
-        PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
         return nullptr;
     }
 
     if (false == clp_ffi_py::decoder::PyMessageTy_module_level_init(new_module, object_list)) {
         clean_object_list(object_list);
-        std::string error_message{
-                std::string(clp_ffi_py::error_messages::object_loading_error) + "Message"};
-        PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
         return nullptr;
     }
 
     if (false == clp_ffi_py::decoder::PyQuery_module_level_init(new_module, object_list)) {
         clean_object_list(object_list);
-        std::string error_message{
-                std::string(clp_ffi_py::error_messages::object_loading_error) + "Query"};
-        PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
         return nullptr;
     }
 

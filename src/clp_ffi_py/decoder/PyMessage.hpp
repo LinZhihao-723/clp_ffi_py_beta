@@ -7,8 +7,6 @@
 #include <clp_ffi_py/utilities.hpp>
 
 namespace clp_ffi_py::decoder {
-extern PyTypeObject* PyMessageTy;
-
 struct PyMessage {
     PyObject_HEAD;
     Message* message;
@@ -24,6 +22,7 @@ PyObject* PyMessage_wildcard_match_case_sensitive(PyMessage* self, PyObject* arg
 PyMessage* PyMessage_create_empty();
 auto PyMessageTy_module_level_init(PyObject* py_module, std::vector<PyObject*>& object_list)
         -> bool;
+auto PyMessage_get_PyType(bool init = false) -> PyTypeObject*;
 } // namespace clp_ffi_py::decoder
 
 #endif
