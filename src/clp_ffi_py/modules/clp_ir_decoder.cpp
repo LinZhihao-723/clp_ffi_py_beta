@@ -26,7 +26,7 @@ static PyMethodDef DecoderMethods[] = {
 static struct PyModuleDef clp_four_byte_decoder =
         {PyModuleDef_HEAD_INIT, "CLPIRDecoder", NULL, -1, DecoderMethods};
 
-PyMODINIT_FUNC PyInit_CLPIRDecoder(void) {
+PyMODINIT_FUNC PyInit_CLPIRDecoder() {
     // Create the module
     std::vector<PyObject*> object_list;
     PyObject* new_module{PyModule_Create(&clp_four_byte_decoder)};

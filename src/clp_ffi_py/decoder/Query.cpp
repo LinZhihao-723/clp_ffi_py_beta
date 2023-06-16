@@ -2,6 +2,9 @@
 
 namespace clp_ffi_py::decoder {
 auto Query::matches(Message const& message) const -> bool {
+    if (m_query_list.empty()) {
+        return true;
+    }
     return m_use_and ? matches_and(message) : matches_or(message);
 }
 
