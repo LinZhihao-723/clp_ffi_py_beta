@@ -147,10 +147,11 @@ decode(ffi::epoch_time_ms_t ref_timestamp,
                     read_buffer->get_num_decoded_message() - 1));
         case ffi::ir_stream::IRErrorCode_Incomplete_IR:
             if (auto num_bytes_read{read_buffer->read_from(istream)}; 0 == num_bytes_read) {
-                PyErr_SetString(
-                        PyExc_RuntimeError,
-                        clp_ffi_py::error_messages::decoder::istream_empty_error);
-                return nullptr;
+                // PyErr_SetString(
+                //         PyExc_RuntimeError,
+                //         clp_ffi_py::error_messages::decoder::istream_empty_error);
+                // The stream is truncated . We should probably send a warning instead...
+                Py_RETURN_NONE;
             }
             break;
         case ffi::ir_stream::IRErrorCode_Eof:
