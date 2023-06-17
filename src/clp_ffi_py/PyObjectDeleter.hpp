@@ -9,9 +9,7 @@ namespace clp_ffi_py {
 template <typename PyObjectType>
 class PyObjectDeleter {
 public:
-    void operator()(PyObjectType* ptr) { 
-        Py_XDECREF(reinterpret_cast<PyObject*>(ptr));
-     }
+    void operator()(PyObjectType* ptr) { Py_XDECREF(reinterpret_cast<PyObject*>(ptr)); }
 };
 } // namespace clp_ffi_py
 

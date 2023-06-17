@@ -55,7 +55,7 @@ static auto PyQuery_init(PyQuery* self, PyObject* args, PyObject* keywords) -> i
 
     if (Py_None != py_query_list && false == PyObject_TypeCheck(py_query_list, &PyList_Type)) {
         PyErr_SetString(PyExc_TypeError, clp_ffi_py::error_messages::py_type_error);
-        return -1; 
+        return -1;
     }
 
     bool const case_sensitive{(1 == py_case_sensitive) ? true : false};

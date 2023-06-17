@@ -61,7 +61,8 @@ auto PyDecoderBuffer::read_from(PyObject* istream) -> Py_ssize_t {
 }
 
 extern "C" {
-static auto PyDecoderBuffer_new(PyTypeObject* type, PyObject* args, PyObject* keywords) -> PyObject* {
+static auto PyDecoderBuffer_new(PyTypeObject* type, PyObject* args, PyObject* keywords)
+        -> PyObject* {
     PyDecoderBuffer* self{reinterpret_cast<PyDecoderBuffer*>(type->tp_alloc(type, 0))};
     if (nullptr == self) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);

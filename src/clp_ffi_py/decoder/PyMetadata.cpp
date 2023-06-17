@@ -62,7 +62,7 @@ static auto PyMetadata_get_ref_timestamp(PyMetadata* self) -> PyObject* {
     return PyLong_FromLongLong(self->metadata->get_ref_timestamp());
 }
 
-static auto PyMetadata_get_timestamp_format(PyMetadata* self) -> PyObject*{
+static auto PyMetadata_get_timestamp_format(PyMetadata* self) -> PyObject* {
     assert(self->metadata);
     return PyUnicode_FromString(self->metadata->get_timestamp_format().c_str());
 }
@@ -73,7 +73,8 @@ static auto PyMetadata_get_timezone(PyMetadata* self) -> PyObject* {
 }
 }
 
-auto PyMetadata_init_from_json(nlohmann::json const& metadata, bool is_four_byte_encoding) -> PyMetadata* {
+auto PyMetadata_init_from_json(nlohmann::json const& metadata, bool is_four_byte_encoding)
+        -> PyMetadata* {
     PyMetadata* self{
             reinterpret_cast<PyMetadata*>(PyObject_New(PyMetadata, PyMetadata_get_PyType()))};
     if (nullptr == self) {
