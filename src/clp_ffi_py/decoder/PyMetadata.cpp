@@ -8,7 +8,8 @@
 #include <clp_ffi_py/utilities.hpp>
 
 namespace clp_ffi_py::decoder {
-PyObject* PyMetadata_new(PyTypeObject* type, PyObject* args, PyObject* keywords) {
+extern "C" {
+static auto PyMetadata_new(PyTypeObject* type, PyObject* args, PyObject* keywords) -> PyObject* {
     // Since tp_alloc returns <PyObject*>, we cannot use static_cast to cast it
     // to <PyMetadata*>. A C-style casting is expected (reinterpret_cast).
     PyMetadata* self{reinterpret_cast<PyMetadata*>(type->tp_alloc(type, 0))};
@@ -20,7 +21,7 @@ PyObject* PyMetadata_new(PyTypeObject* type, PyObject* args, PyObject* keywords)
     return reinterpret_cast<PyObject*>(self);
 }
 
-int PyMetadata_init(PyMetadata* self, PyObject* args, PyObject* keywords) {
+static auto PyMetadata_init(PyMetadata* self, PyObject* args, PyObject* keywords) -> int {
     ffi::epoch_time_ms_t ref_timestamp;
     char const* input_timestamp_format;
     char const* input_timezone;
@@ -47,7 +48,7 @@ void PyMetadata_dealloc(PyMetadata* self) {
     Py_TYPE(self)->tp_free(reinterpret_cast<PyObject*>(self));
 }
 
-PyObject* PyMetadata_is_using_four_byte_encoding(PyMetadata* self) {
+static auto PyMetadata_is_using_four_byte_encoding(PyMetadata* self) -> PyObject* {
     assert(self->metadata);
     if (self->metadata->is_using_four_byte_encoding()) {
         Py_RETURN_TRUE;
@@ -56,22 +57,23 @@ PyObject* PyMetadata_is_using_four_byte_encoding(PyMetadata* self) {
     }
 }
 
-PyObject* PyMetadata_get_ref_timestamp(PyMetadata* self) {
+static auto PyMetadata_get_ref_timestamp(PyMetadata* self) -> PyObject* {
     assert(self->metadata);
     return PyLong_FromLongLong(self->metadata->get_ref_timestamp());
 }
 
-PyObject* PyMetadata_get_timestamp_format(PyMetadata* self) {
+static auto PyMetadata_get_timestamp_format(PyMetadata* self) -> PyObject*{
     assert(self->metadata);
     return PyUnicode_FromString(self->metadata->get_timestamp_format().c_str());
 }
 
-PyObject* PyMetadata_get_timezone(PyMetadata* self) {
+static auto PyMetadata_get_timezone(PyMetadata* self) -> PyObject* {
     assert(self->metadata);
     return PyUnicode_FromString(self->metadata->get_timezone().c_str());
 }
+}
 
-PyMetadata* PyMetadata_init_from_json(nlohmann::json const& metadata, bool is_four_byte_encoding) {
+auto PyMetadata_init_from_json(nlohmann::json const& metadata, bool is_four_byte_encoding) -> PyMetadata* {
     PyMetadata* self{
             reinterpret_cast<PyMetadata*>(PyObject_New(PyMetadata, PyMetadata_get_PyType()))};
     if (nullptr == self) {

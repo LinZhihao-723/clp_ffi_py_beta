@@ -7,9 +7,11 @@
 #include <clp_ffi_py/decoder/PyMetadata.hpp>
 
 namespace clp_ffi_py::decoder::four_byte_decoder {
+extern "C"{
 PyObject* decode_preamble(PyObject* self, PyObject* args);
 PyObject* decode_next_message(PyObject* self, PyObject* args);
 PyObject* decode_next_message_with_query(PyObject* self, PyObject* args);
+}
 } // namespace clp_ffi_py::decoder::four_byte_decoder
 
 #endif

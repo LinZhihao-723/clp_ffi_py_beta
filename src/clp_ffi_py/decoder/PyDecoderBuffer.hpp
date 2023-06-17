@@ -16,12 +16,12 @@ struct PyDecoderBuffer {
     Py_ssize_t buf_capacity;
     size_t num_decoded_message;
 
-    [[nodiscard]] Py_ssize_t read_from(PyObject* istream);
-    [[nodiscard]] std::pair<int8_t*, size_t> get_ir_buffer() {
+    [[nodiscard]] auto read_from(PyObject* istream) -> Py_ssize_t;
+    [[nodiscard]] auto get_ir_buffer() -> std::pair<int8_t*, size_t> {
         return {buf + cursor_pos, buf_size - cursor_pos};
     }
 
-    size_t get_num_decoded_message() const { return num_decoded_message; }
+    auto get_num_decoded_message() -> size_t const { return num_decoded_message; }
     void increment_num_decoded_message() { ++num_decoded_message; }
     void increment_cursor(size_t offset) { cursor_pos += static_cast<Py_ssize_t>(offset); }
 
@@ -29,11 +29,6 @@ private:
     void grow_and_shift();
     void shift();
 };
-
-PyObject* PyDecoderBuffer_new(PyTypeObject* type, PyObject* args, PyObject* keywords);
-void PyDecoderBuffer_dealloc(PyDecoderBuffer* self);
-PyObject* PyDecoderBuffer_read_from(PyDecoderBuffer* self, PyObject* args);
-PyObject* PyDecoderBuffer_dump(PyDecoderBuffer* self);
 
 auto PyDecoderBuffer_module_level_init(PyObject* py_module, std::vector<PyObject*>& object_list)
         -> bool;

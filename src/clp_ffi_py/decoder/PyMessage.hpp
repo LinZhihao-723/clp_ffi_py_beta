@@ -12,14 +12,6 @@ struct PyMessage {
     Message* message;
 };
 
-PyObject* PyMessage_new(PyTypeObject* type, PyObject* args, PyObject* keywords);
-void PyMessage_dealloc(PyMessage* self);
-PyObject* PyMessage_get_message(PyMessage* self);
-PyObject* PyMessage_get_timestamp(PyMessage* self);
-PyObject* PyMessage_get_message_idx(PyMessage* self);
-PyObject* PyMessage_wildcard_match(PyMessage* self, PyObject* args);
-PyObject* PyMessage_wildcard_match_case_sensitive(PyMessage* self, PyObject* args);
-
 PyMessage* PyMessage_create_empty();
 auto PyMessage_create_new(std::string message, ffi::epoch_time_ms_t timestamp, size_t message_idx)
         -> PyMessage*;

@@ -6,7 +6,8 @@
 #include <clp_ffi_py/decoder/Message.hpp>
 
 namespace clp_ffi_py::decoder {
-PyObject* PyMessage_new(PyTypeObject* type, PyObject* args, PyObject* keywords) {
+extern "C" {
+static auto PyMessage_new(PyTypeObject* type, PyObject* args, PyObject* keywords) -> PyObject* {
     PyMessage* self{reinterpret_cast<PyMessage*>(type->tp_alloc(type, 0))};
     if (nullptr == self) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
@@ -21,27 +22,56 @@ PyObject* PyMessage_new(PyTypeObject* type, PyObject* args, PyObject* keywords) 
     return reinterpret_cast<PyObject*>(self);
 }
 
-void PyMessage_dealloc(PyMessage* self) {
+static void PyMessage_dealloc(PyMessage* self) {
     delete self->message;
     Py_TYPE(self)->tp_free(reinterpret_cast<PyObject*>(self));
 }
 
-PyObject* PyMessage_get_message(PyMessage* self) {
+static auto PyMessage_get_message(PyMessage* self) -> PyObject* {
     assert(self->message);
     return PyUnicode_FromString(self->message->get_message_ref().c_str());
 }
 
-PyObject* PyMessage_get_timestamp(PyMessage* self) {
+static auto PyMessage_get_timestamp(PyMessage* self) -> PyObject* {
     assert(self->message);
     return PyLong_FromLongLong(self->message->get_timestamp_ref());
 }
 
-PyObject* PyMessage_get_message_idx(PyMessage* self) {
+static auto PyMessage_get_message_idx(PyMessage* self) -> PyObject* {
     assert(self->message);
     return PyLong_FromLongLong(self->message->get_message_idx());
 }
 
-PyMessage* PyMessage_create_empty() {
+static auto PyMessage_wildcard_match(PyMessage* self, PyObject* args) -> PyObject* {
+    char const* input_wildcard;
+    Py_ssize_t input_wildcard_size;
+    if (0 == PyArg_ParseTuple(args, "s#", &input_wildcard, &input_wildcard_size)) {
+        return nullptr;
+    }
+    std::string_view wildcard{input_wildcard, static_cast<size_t>(input_wildcard_size)};
+    if (self->message->wildcard_match(wildcard)) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+
+static auto PyMessage_wildcard_match_case_sensitive(PyMessage* self, PyObject* args) -> PyObject* {
+    char const* input_wildcard;
+    Py_ssize_t input_wildcard_size;
+    if (0 == PyArg_ParseTuple(args, "s#", &input_wildcard, &input_wildcard_size)) {
+        return nullptr;
+    }
+    std::string_view wildcard{input_wildcard, static_cast<size_t>(input_wildcard_size)};
+    if (self->message->wildcard_match_case_sensitive(wildcard)) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+}
+
+auto PyMessage_create_empty() -> PyMessage* {
     PyMessage* self{reinterpret_cast<PyMessage*>(PyObject_New(PyMessage, PyMessage_get_PyType()))};
     if (nullptr == self) {
         return nullptr;
@@ -68,34 +98,6 @@ auto PyMessage_create_new(std::string message, ffi::epoch_time_ms_t timestamp, s
         return nullptr;
     }
     return self;
-}
-
-PyObject* PyMessage_wildcard_match(PyMessage* self, PyObject* args) {
-    char const* input_wildcard;
-    Py_ssize_t input_wildcard_size;
-    if (0 == PyArg_ParseTuple(args, "s#", &input_wildcard, &input_wildcard_size)) {
-        return nullptr;
-    }
-    std::string_view wildcard{input_wildcard, static_cast<size_t>(input_wildcard_size)};
-    if (self->message->wildcard_match(wildcard)) {
-        Py_RETURN_TRUE;
-    } else {
-        Py_RETURN_FALSE;
-    }
-}
-
-PyObject* PyMessage_wildcard_match_case_sensitive(PyMessage* self, PyObject* args) {
-    char const* input_wildcard;
-    Py_ssize_t input_wildcard_size;
-    if (0 == PyArg_ParseTuple(args, "s#", &input_wildcard, &input_wildcard_size)) {
-        return nullptr;
-    }
-    std::string_view wildcard{input_wildcard, static_cast<size_t>(input_wildcard_size)};
-    if (self->message->wildcard_match_case_sensitive(wildcard)) {
-        Py_RETURN_TRUE;
-    } else {
-        Py_RETURN_FALSE;
-    }
 }
 
 static PyMethodDef PyMessage_method_table[]{
