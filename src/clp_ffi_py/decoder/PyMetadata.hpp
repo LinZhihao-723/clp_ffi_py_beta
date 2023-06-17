@@ -12,8 +12,8 @@ struct PyMetadata {
     Metadata* metadata;
 };
 
-PyObject* PyMetadata_new(PyTypeObject* type, PyObject* args, PyObject* kwds);
-int PyMetadata_init(PyMetadata* self, PyObject* args, PyObject* kwds);
+PyObject* PyMetadata_new(PyTypeObject* type, PyObject* args, PyObject* keywords);
+int PyMetadata_init(PyMetadata* self, PyObject* args, PyObject* keywords);
 void PyMetadata_dealloc(PyMetadata* self);
 PyObject* PyMetadata_is_using_four_byte_encoding(PyMetadata* self);
 PyObject* PyMetadata_get_ref_timestamp(PyMetadata* self);

@@ -137,9 +137,19 @@ decode(ffi::epoch_time_ms_t ref_timestamp,
             ref_timestamp += timestamp_delta;
             read_buffer->increment_cursor(ir_buffer.get_cursor_pos());
             read_buffer->increment_num_decoded_message();
-            if (nullptr != query &&
-                false == query->query->matches(std::string_view(decoded_message))) {
-                continue;
+            if (nullptr != query) {
+                // Since no one enforces the query lower bound to be smaller
+                // than the upper bound, upper bound check should be executed
+                // first to ensure early exit
+                if (false == query->query->ts_upper_bound_check(ref_timestamp)) {
+                    Py_RETURN_NONE;
+                }
+                if (false == query->query->ts_lower_bound_check(ref_timestamp)) {
+                    continue;
+                }
+                if (false == query->query->matches(std::string_view(decoded_message))) {
+                    continue;
+                }
             }
             return reinterpret_cast<PyObject*>(PyMessage_create_new(
                     decoded_message,

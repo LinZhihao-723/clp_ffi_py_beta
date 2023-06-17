@@ -30,7 +30,7 @@ private:
     void shift();
 };
 
-PyObject* PyDecoderBuffer_new(PyTypeObject* type, PyObject* args, PyObject* kwds);
+PyObject* PyDecoderBuffer_new(PyTypeObject* type, PyObject* args, PyObject* keywords);
 void PyDecoderBuffer_dealloc(PyDecoderBuffer* self);
 PyObject* PyDecoderBuffer_read_from(PyDecoderBuffer* self, PyObject* args);
 PyObject* PyDecoderBuffer_dump(PyDecoderBuffer* self);

@@ -1,13 +1,16 @@
 #include <clp_ffi_py/Python.hpp> // Must always be included before any other header files
 #include <clp_ffi_py/decoder/PyQuery.hpp>
 
+#include <clp/components/core/src/ffi/encoding_methods.hpp>
+
 #include <clp_ffi_py/ErrorMessage.hpp>
 #include <clp_ffi_py/PyObjectDeleter.hpp>
 #include <clp_ffi_py/decoder/PyMessage.hpp>
 #include <clp_ffi_py/utilities.hpp>
 
 namespace clp_ffi_py::decoder {
-auto PyQuery_new(PyTypeObject* type, PyObject* args, PyObject* kwds) -> PyObject* {
+extern "C" {
+static auto PyQuery_new(PyTypeObject* type, PyObject* args, PyObject* keywords) -> PyObject* {
     PyQuery* self{reinterpret_cast<PyQuery*>(type->tp_alloc(type, 0))};
     if (nullptr == self) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
@@ -17,29 +20,54 @@ auto PyQuery_new(PyTypeObject* type, PyObject* args, PyObject* kwds) -> PyObject
     return reinterpret_cast<PyObject*>(self);
 }
 
-auto PyQuery_init(PyQuery* self, PyObject* args, PyObject* kwds) -> int {
-    assert(nullptr == self->query);
+static auto PyQuery_init(PyQuery* self, PyObject* args, PyObject* keywords) -> int {
+    /**
+     __init__(query_list=None, case_sensitive=True, ts_lower_bound=0, ts_upper_bound=INT_MAX)
+     */
+    static char keyword_query_list[] = "query_list";
+    static char keyword_case_sensitive[] = "case_sensitive";
+    static char keyword_ts_lower_bound[] = "ts_lower_bound";
+    static char keyword_ts_upper_bound[] = "ts_upper_bound";
+    static char* key_table[] = {
+            static_cast<char*>(keyword_query_list),
+            static_cast<char*>(keyword_case_sensitive),
+            static_cast<char*>(keyword_ts_lower_bound),
+            static_cast<char*>(keyword_ts_upper_bound),
+            nullptr};
 
-    int py_use_and;
-    int py_case_sensitive;
-    PyObject* py_query_list;
-    if (!PyArg_ParseTuple(
+    assert(nullptr == self->query);
+    int py_case_sensitive{1};
+    ffi::epoch_time_ms_t ts_lower_bound{Query::default_ts_lower_bound};
+    ffi::epoch_time_ms_t ts_upper_bound{Query::default_ts_upper_bound};
+    PyObject* py_query_list{Py_None};
+
+    if (!PyArg_ParseTupleAndKeywords(
                 args,
-                "ppO!",
-                &py_use_and,
+                keywords,
+                "|OpLL",
+                key_table,
+                &py_query_list,
                 &py_case_sensitive,
-                &PyList_Type,
-                &py_query_list)) {
+                &ts_lower_bound,
+                &ts_upper_bound)) {
         return -1;
     }
 
-    bool const use_and{(1 == py_use_and) ? true : false};
+    if (Py_None != py_query_list && false == PyObject_TypeCheck(py_query_list, &PyList_Type)) {
+        PyErr_SetString(PyExc_TypeError, clp_ffi_py::error_messages::py_type_error);
+        return -1; 
+    }
+
     bool const case_sensitive{(1 == py_case_sensitive) ? true : false};
 
-    self->query = new Query(use_and, case_sensitive);
+    self->query = new Query(case_sensitive, ts_lower_bound, ts_upper_bound);
     if (nullptr == self->query) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
         return -1;
+    }
+
+    if (Py_None == py_query_list) {
+        return 0;
     }
 
     // Note: we don't have to deallocate self->query because dealloc function
@@ -64,12 +92,12 @@ auto PyQuery_init(PyQuery* self, PyObject* args, PyObject* kwds) -> int {
     return 0;
 }
 
-void PyQuery_dealloc(PyQuery* self) {
+static void PyQuery_dealloc(PyQuery* self) {
     delete self->query;
     PyObject_Del(self);
 }
 
-auto PyQuery_match(PyQuery* self, PyObject* args) -> PyObject* {
+static auto PyQuery_match(PyQuery* self, PyObject* args) -> PyObject* {
     PyObject* message_obj;
     if (false == PyArg_ParseTuple(args, "O", &message_obj)) {
         return nullptr;
@@ -90,11 +118,40 @@ auto PyQuery_match(PyQuery* self, PyObject* args) -> PyObject* {
     }
 }
 
+static auto PyQuery_set_ts_lower_bound(PyQuery* self, PyObject* args) -> PyObject* {
+    ffi::epoch_time_ms_t ts_lower_bound;
+    assert(self->query);
+    if (false == PyArg_ParseTuple(args, "L", ts_lower_bound)) {
+        return nullptr;
+    }
+    self->query->set_ts_lower_bound(ts_lower_bound);
+    return reinterpret_cast<PyObject*>(self);
+}
+
+static auto PyQuery_set_ts_upper_bound(PyQuery* self, PyObject* args) -> PyObject* {
+    ffi::epoch_time_ms_t ts_upper_bound;
+    assert(self->query);
+    if (false == PyArg_ParseTuple(args, "L", ts_upper_bound)) {
+        return nullptr;
+    }
+    self->query->set_ts_upper_bound(ts_upper_bound);
+    return reinterpret_cast<PyObject*>(self);
+}
+}
+
 static PyMethodDef PyQuery_method_table[]{
         {"match",
          reinterpret_cast<PyCFunction>(PyQuery_match),
          METH_VARARGS,
          "Match the query with a given message."},
+        {"set_ts_lower_bound",
+         reinterpret_cast<PyCFunction>(PyQuery_set_ts_lower_bound),
+         METH_VARARGS,
+         "Set query lower bound timestamp"},
+        {"set_ts_upper_bound",
+         reinterpret_cast<PyCFunction>(PyQuery_set_ts_upper_bound),
+         METH_VARARGS,
+         "Set query upper bound timestamp"},
         {nullptr}};
 
 static PyType_Slot PyQuery_slots[]{

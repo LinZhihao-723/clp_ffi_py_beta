@@ -8,7 +8,7 @@
 #include <clp_ffi_py/utilities.hpp>
 
 namespace clp_ffi_py::decoder {
-PyObject* PyDecoderBuffer_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
+PyObject* PyDecoderBuffer_new(PyTypeObject* type, PyObject* args, PyObject* keywords) {
     PyDecoderBuffer* self{reinterpret_cast<PyDecoderBuffer*>(type->tp_alloc(type, 0))};
     if (nullptr == self) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);

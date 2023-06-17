@@ -11,11 +11,6 @@ struct PyQuery {
     Query* query;
 };
 
-auto PyQuery_new(PyTypeObject* type, PyObject* args, PyObject* kwds) -> PyObject*;
-auto PyQuery_init(PyQuery* self, PyObject* args, PyObject* kwds) -> int;
-void PyQuery_dealloc(PyQuery* self);
-auto PyQuery_match(PyQuery* self, PyObject* args) -> PyObject*;
-
 auto PyQuery_module_level_init(PyObject* py_module, std::vector<PyObject*>& object_list) -> bool;
 auto PyQuery_get_PyType(bool init = false) -> PyTypeObject*;
 } // namespace clp_ffi_py::decoder

@@ -12,7 +12,7 @@ struct PyMessage {
     Message* message;
 };
 
-PyObject* PyMessage_new(PyTypeObject* type, PyObject* args, PyObject* kwds);
+PyObject* PyMessage_new(PyTypeObject* type, PyObject* args, PyObject* keywords);
 void PyMessage_dealloc(PyMessage* self);
 PyObject* PyMessage_get_message(PyMessage* self);
 PyObject* PyMessage_get_timestamp(PyMessage* self);

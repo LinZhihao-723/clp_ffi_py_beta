@@ -1,25 +1,59 @@
-#ifndef CLP_FFI_PY_Query
-#define CLP_FFI_PY_Query
+#ifndef CLP_FFI_PY_QUERY
+#define CLP_FFI_PY_QUERY
 
 #include <clp_ffi_py/decoder/Message.hpp>
+
+#include <clp/components/core/src/ffi/encoding_methods.hpp>
+#include <limits>
 #include <vector>
 
 namespace clp_ffi_py::decoder {
 class Query {
 public:
-    Query(bool use_and, bool case_sensitive)
-        : m_use_and(use_and),
-          m_case_sensitive(case_sensitive){};
-    void add_query(std::string_view wildcard) { m_query_list.emplace_back(wildcard); }
+    static constexpr ffi::epoch_time_ms_t default_ts_lower_bound = 0;
+    static constexpr ffi::epoch_time_ms_t default_ts_upper_bound =
+            std::numeric_limits<ffi::epoch_time_ms_t>::max();
+
+    Query(bool case_sensitive)
+        : m_case_sensitive(case_sensitive),
+          m_ts_lower_bound(default_ts_lower_bound),
+          m_ts_upper_bound(default_ts_upper_bound){};
+
+    Query(bool case_sensitive,
+          ffi::epoch_time_ms_t ts_lower_bound,
+          ffi::epoch_time_ms_t ts_upper_bound)
+        : m_case_sensitive(case_sensitive),
+          m_ts_lower_bound(ts_lower_bound),
+          m_ts_upper_bound(ts_upper_bound){};
+
+    void add_query(std::string_view wildcard) noexcept { m_query_list.emplace_back(wildcard); }
+
     [[nodiscard]] auto matches(Message const& message) const -> bool;
+
     [[nodiscard]] auto matches(std::string_view message) const -> bool;
 
+    void set_ts_lower_bound(ffi::epoch_time_ms_t ts) { m_ts_lower_bound = ts; }
+
+    void set_ts_upper_bound(ffi::epoch_time_ms_t ts) { m_ts_upper_bound = ts; }
+
+    [[nodiscard]] auto ts_lower_bound_check(ffi::epoch_time_ms_t ts) const -> bool {
+        return ts >= m_ts_lower_bound;
+    }
+
+    [[nodiscard]] auto ts_upper_bound_check(ffi::epoch_time_ms_t ts) const -> bool {
+        return ts <= m_ts_upper_bound;
+    }
+
+    [[nodiscard]] auto ts_in_range(ffi::epoch_time_ms_t ts) const -> bool {
+        return ts_lower_bound_check(ts) && ts_upper_bound_check(ts);
+    }
+
 private:
-    [[nodiscard]] auto matches_and(std::string_view message) const -> bool;
-    [[nodiscard]] auto matches_or(std::string_view message) const -> bool;
     std::vector<std::string> m_query_list;
-    bool const m_use_and;
     bool const m_case_sensitive;
+
+    ffi::epoch_time_ms_t m_ts_lower_bound;
+    ffi::epoch_time_ms_t m_ts_upper_bound;
 };
 } // namespace clp_ffi_py::decoder
 #endif

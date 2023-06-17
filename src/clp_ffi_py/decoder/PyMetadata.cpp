@@ -8,7 +8,7 @@
 #include <clp_ffi_py/utilities.hpp>
 
 namespace clp_ffi_py::decoder {
-PyObject* PyMetadata_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
+PyObject* PyMetadata_new(PyTypeObject* type, PyObject* args, PyObject* keywords) {
     // Since tp_alloc returns <PyObject*>, we cannot use static_cast to cast it
     // to <PyMetadata*>. A C-style casting is expected (reinterpret_cast).
     PyMetadata* self{reinterpret_cast<PyMetadata*>(type->tp_alloc(type, 0))};
@@ -20,7 +20,7 @@ PyObject* PyMetadata_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
     return reinterpret_cast<PyObject*>(self);
 }
 
-int PyMetadata_init(PyMetadata* self, PyObject* args, PyObject* kwds) {
+int PyMetadata_init(PyMetadata* self, PyObject* args, PyObject* keywords) {
     ffi::epoch_time_ms_t ref_timestamp;
     char const* input_timestamp_format;
     char const* input_timezone;

@@ -6,7 +6,7 @@
 #include <clp_ffi_py/decoder/Message.hpp>
 
 namespace clp_ffi_py::decoder {
-PyObject* PyMessage_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
+PyObject* PyMessage_new(PyTypeObject* type, PyObject* args, PyObject* keywords) {
     PyMessage* self{reinterpret_cast<PyMessage*>(type->tp_alloc(type, 0))};
     if (nullptr == self) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
