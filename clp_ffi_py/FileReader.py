@@ -7,25 +7,23 @@ from clp_ffi_py.CLPIRDecoder import (
     Query,
 )
 from types import TracebackType
-from typing import Iterator, Optional, Type
+from typing import IO, Iterator, Optional, Type
 from pathlib import Path
 
 from datetime import datetime, tzinfo
 import dateutil.tz
 from zstandard import ZstdDecompressor, ZstdDecompressionReader
 
-
-class CLPFileReader:
+class CLPStreamReader:
     def __init__(
         self,
-        fpath: Path,
+        istream: IO[bytes],
         query: Optional[Query],
         timestamp_format: Optional[str] = None,
     ):
-        self.path: Path = fpath
         self.dctx: ZstdDecompressor = ZstdDecompressor()
         self.zstream: ZstdDecompressionReader = self.dctx.stream_reader(
-            open(fpath, "rb"), read_across_frames=True
+            istream, read_across_frames=True
         )
         self.buffer: DecoderBuffer = DecoderBuffer()
         self.timestamp_format: Optional[str] = timestamp_format
@@ -83,3 +81,13 @@ class CLPFileReader:
                 self.ref_timestamp = self.message.get_timestamp()
                 file_out.write(self.get_raw_message(self.message))
         self.close()
+
+class CLPFileReader(CLPStreamReader):
+    def __init__(
+        self,
+        fpath: Path,
+        query: Optional[Query],
+        timestamp_format: Optional[str] = None,
+    ):
+        self.path: Path = fpath
+        super().__init__(open(fpath, "rb"), query, timestamp_format)
