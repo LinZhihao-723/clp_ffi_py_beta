@@ -125,22 +125,21 @@ static PyType_Spec PyMetadata_type_spec{
         Py_TPFLAGS_DEFAULT,
         PyMetadata_slots};
 
-auto PyMetadata_get_PyType(bool init) -> PyTypeObject* {
-    static std::unique_ptr<PyTypeObject, PyObjectDeleter<PyTypeObject>> PyMetadata_type;
-    if (init) {
-        auto type{reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyMetadata_type_spec))};
-        PyMetadata_type.reset(type);
-        if (nullptr != type) {
-            Py_INCREF(type);
-        }
-    }
+static std::unique_ptr<PyTypeObject, PyObjectDeleter<PyTypeObject>> PyMetadata_type;
+
+auto PyMetadata_get_PyType() -> PyTypeObject* {
     return PyMetadata_type.get();
 }
 
 auto PyMetadata_module_level_init(PyObject* py_module, std::vector<PyObject*>& object_list)
         -> bool {
+    auto type{reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyMetadata_type_spec))};
+    PyMetadata_type.reset(type);
+    if (nullptr != type) {
+        Py_INCREF(type);
+    }
     return add_type(
-            reinterpret_cast<PyObject*>(PyMetadata_get_PyType(true)),
+            reinterpret_cast<PyObject*>(PyMetadata_get_PyType()),
             "Metadata",
             py_module,
             object_list);

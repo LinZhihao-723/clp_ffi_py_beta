@@ -17,7 +17,7 @@ auto PyMessage_create_new(std::string message, ffi::epoch_time_ms_t timestamp, s
         -> PyMessage*;
 auto PyMessageTy_module_level_init(PyObject* py_module, std::vector<PyObject*>& object_list)
         -> bool;
-auto PyMessage_get_PyType(bool init = false) -> PyTypeObject*;
+auto PyMessage_get_PyType() -> PyTypeObject*;
 } // namespace clp_ffi_py::decoder
 
 #endif

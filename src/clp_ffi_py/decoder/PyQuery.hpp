@@ -12,6 +12,6 @@ struct PyQuery {
 };
 
 auto PyQuery_module_level_init(PyObject* py_module, std::vector<PyObject*>& object_list) -> bool;
-auto PyQuery_get_PyType(bool init = false) -> PyTypeObject*;
+auto PyQuery_get_PyType() -> PyTypeObject*;
 } // namespace clp_ffi_py::decoder
 #endif

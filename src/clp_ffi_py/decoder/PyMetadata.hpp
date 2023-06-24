@@ -15,7 +15,7 @@ struct PyMetadata {
 auto PyMetadata_init_from_json(nlohmann::json const& metadata, bool is_four_byte_encoding)
         -> PyMetadata*;
 auto PyMetadata_module_level_init(PyObject* py_module, std::vector<PyObject*>& object_list) -> bool;
-auto PyMetadata_get_PyType(bool init = false) -> PyTypeObject*;
+auto PyMetadata_get_PyType() -> PyTypeObject*;
 } // namespace clp_ffi_py::decoder
 
 #endif

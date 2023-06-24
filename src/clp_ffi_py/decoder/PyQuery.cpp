@@ -168,21 +168,20 @@ static PyType_Spec PyQuery_type_spec{
         Py_TPFLAGS_DEFAULT,
         PyQuery_slots};
 
-auto PyQuery_get_PyType(bool init) -> PyTypeObject* {
-    static std::unique_ptr<PyTypeObject, PyObjectDeleter<PyTypeObject>> PyQuery_type;
-    if (init) {
-        auto type{reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyQuery_type_spec))};
-        PyQuery_type.reset(type);
-        if (nullptr != type) {
-            Py_INCREF(type);
-        }
-    }
+static std::unique_ptr<PyTypeObject, PyObjectDeleter<PyTypeObject>> PyQuery_type;
+
+auto PyQuery_get_PyType() -> PyTypeObject* {
     return PyQuery_type.get();
 }
 
 auto PyQuery_module_level_init(PyObject* py_module, std::vector<PyObject*>& object_list) -> bool {
+    auto type{reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyQuery_type_spec))};
+    PyQuery_type.reset(type);
+    if (nullptr != type) {
+        Py_INCREF(type);
+    }
     return add_type(
-            reinterpret_cast<PyObject*>(PyQuery_get_PyType(true)),
+            reinterpret_cast<PyObject*>(PyQuery_get_PyType()),
             "Query",
             py_module,
             object_list);

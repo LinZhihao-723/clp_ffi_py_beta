@@ -32,6 +32,6 @@ private:
 
 auto PyDecoderBuffer_module_level_init(PyObject* py_module, std::vector<PyObject*>& object_list)
         -> bool;
-auto PyDecoderBuffer_get_PyType(bool init = false) -> PyTypeObject*;
+auto PyDecoderBuffer_get_PyType() -> PyTypeObject*;
 } // namespace clp_ffi_py::decoder
 #endif

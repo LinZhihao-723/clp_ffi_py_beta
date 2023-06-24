@@ -155,21 +155,20 @@ static PyType_Spec PyDecoderBuffer_type_spec{
         Py_TPFLAGS_DEFAULT,
         PyDecoderBuffer_slots};
 
+static std::unique_ptr<PyTypeObject, PyObjectDeleter<PyTypeObject>> PyDecoderBuffer_type;
+
 auto PyDecoderBuffer_get_PyType(bool init) -> PyTypeObject* {
-    static std::unique_ptr<PyTypeObject, PyObjectDeleter<PyTypeObject>> PyDecoderBuffer_type;
-    if (init) {
-        auto type{reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyDecoderBuffer_type_spec))};
-        PyDecoderBuffer_type.reset(type);
-        if (nullptr != type) {
-            type->tp_as_buffer = &PyDecoderBuffer_as_buffer;
-            Py_INCREF(type);
-        }
-    }
     return PyDecoderBuffer_type.get();
 }
 
 auto PyDecoderBuffer_module_level_init(PyObject* py_module, std::vector<PyObject*>& object_list)
         -> bool {
+    auto type{reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyDecoderBuffer_type_spec))};
+    PyDecoderBuffer_type.reset(type);
+    if (nullptr != type) {
+        type->tp_as_buffer = &PyDecoderBuffer_as_buffer;
+        Py_INCREF(type);
+    }
     return add_type(
             reinterpret_cast<PyObject*>(PyDecoderBuffer_get_PyType(true)),
             "DecoderBuffer",

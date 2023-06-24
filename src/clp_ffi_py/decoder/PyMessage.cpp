@@ -137,22 +137,21 @@ static PyType_Spec PyMessage_type_spec{
         Py_TPFLAGS_DEFAULT,
         PyMessage_slots};
 
-auto PyMessage_get_PyType(bool init) -> PyTypeObject* {
-    static std::unique_ptr<PyTypeObject, PyObjectDeleter<PyTypeObject>> PyMessage_type;
-    if (init) {
-        auto type{reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyMessage_type_spec))};
-        PyMessage_type.reset(type);
-        if (nullptr != type) {
-            Py_INCREF(type);
-        }
-    }
+static std::unique_ptr<PyTypeObject, PyObjectDeleter<PyTypeObject>> PyMessage_type;
+
+auto PyMessage_get_PyType() -> PyTypeObject* {
     return PyMessage_type.get();
 }
 
 auto PyMessageTy_module_level_init(PyObject* py_module, std::vector<PyObject*>& object_list)
         -> bool {
+    auto type{reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyMessage_type_spec))};
+    PyMessage_type.reset(type);
+    if (nullptr != type) {
+        Py_INCREF(type);
+    }
     return add_type(
-            reinterpret_cast<PyObject*>(PyMessage_get_PyType(true)),
+            reinterpret_cast<PyObject*>(PyMessage_get_PyType()),
             "Message",
             py_module,
             object_list);
