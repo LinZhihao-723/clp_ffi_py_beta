@@ -36,6 +36,10 @@ class CLPStreamReader:
     def close(self) -> None:
         self.zstream.close()
 
+    def get_timezone(self) -> tzinfo:
+        assert self.timezone is not None
+        return self.timezone
+
     def __exit__(
         self,
         exc_type: Optional[Type[BaseException]],
@@ -61,11 +65,6 @@ class CLPStreamReader:
             raise StopIteration
         self.ref_timestamp = self.message.get_timestamp()
         return self.message
-
-    def get_raw_message(self, message: Message) -> str:
-        dt: datetime = datetime.fromtimestamp(message.get_timestamp() / 1000, self.timezone)
-        time_format: str = dt.isoformat(sep=" ", timespec="milliseconds")
-        return f"{time_format}{message.get_message()}"
 
     def decompress(self, fpath: Path):
         self.metadata = decode_preamble(self.zstream, self.buffer)

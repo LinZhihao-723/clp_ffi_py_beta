@@ -23,17 +23,17 @@ static PyMethodDef DecoderMethods[] = {
          "Decode next message and return a PyMessage object that matches the given query."},
         {NULL, NULL, 0, NULL}};
 
-static struct PyModuleDef clp_four_byte_decoder =
-        {PyModuleDef_HEAD_INIT, "CLPIRDecoder", NULL, -1, DecoderMethods};
+static struct PyModuleDef clp_ir_decoder =
+        {PyModuleDef_HEAD_INIT, "CLPIRDecoder", nullptr, -1, DecoderMethods};
 
 PyMODINIT_FUNC PyInit_CLPIRDecoder() {
     // Create the module
     std::vector<PyObject*> object_list;
-    PyObject* new_module{PyModule_Create(&clp_four_byte_decoder)};
+    PyObject* new_module{PyModule_Create(&clp_ir_decoder)};
     if (nullptr == new_module) {
         std::string error_message{
                 std::string(clp_ffi_py::error_messages::module_loading_error) +
-                std::string(clp_four_byte_decoder.m_name)};
+                std::string(clp_ir_decoder.m_name)};
         PyErr_SetString(PyExc_RuntimeError, error_message.c_str());
         return nullptr;
     }

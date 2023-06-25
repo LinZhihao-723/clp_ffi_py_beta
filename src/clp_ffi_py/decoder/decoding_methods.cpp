@@ -38,8 +38,14 @@ decode(ffi::epoch_time_ms_t ref_timestamp,
                 // Since no one enforces the query lower bound to be smaller
                 // than the upper bound, upper bound check should be executed
                 // first to ensure early exit
+                // Also, logs may not be sorted w.r.t. the timestamp, we cannot
+                // early exit when the current ref timestamp is larger than the
+                // upper bound unless it passes safe check
                 if (false == query->query->ts_upper_bound_check(ref_timestamp)) {
-                    Py_RETURN_NONE;
+                    if (query->query->ts_upper_bound_exit_check(ref_timestamp)) {
+                        Py_RETURN_NONE;
+                    }
+                    continue;
                 }
                 if (false == query->query->ts_lower_bound_check(ref_timestamp)) {
                     continue;

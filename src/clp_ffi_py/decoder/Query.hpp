@@ -10,14 +10,17 @@
 namespace clp_ffi_py::decoder {
 class Query {
 public:
-    static constexpr ffi::epoch_time_ms_t default_ts_lower_bound = 0;
-    static constexpr ffi::epoch_time_ms_t default_ts_upper_bound =
+    static constexpr ffi::epoch_time_ms_t const cDefaultTimestampLowerBound = 0;
+    static constexpr ffi::epoch_time_ms_t const cDefaultTimestampUpperBound =
             std::numeric_limits<ffi::epoch_time_ms_t>::max();
+
+    static constexpr ffi::epoch_time_ms_t const cTimestampUpperBoundSafeRange =
+            60 * 1000;
 
     Query(bool case_sensitive)
         : m_case_sensitive(case_sensitive),
-          m_ts_lower_bound(default_ts_lower_bound),
-          m_ts_upper_bound(default_ts_upper_bound){};
+          m_ts_lower_bound(cDefaultTimestampLowerBound),
+          m_ts_upper_bound(cDefaultTimestampUpperBound){};
 
     Query(bool case_sensitive,
           ffi::epoch_time_ms_t ts_lower_bound,
@@ -42,6 +45,10 @@ public:
 
     [[nodiscard]] auto ts_upper_bound_check(ffi::epoch_time_ms_t ts) const -> bool {
         return ts <= m_ts_upper_bound;
+    }
+
+    [[nodiscard]] auto ts_upper_bound_exit_check(ffi::epoch_time_ms_t ts) const -> bool {
+        return m_ts_upper_bound - ts >= cTimestampUpperBoundSafeRange;
     }
 
     [[nodiscard]] auto ts_in_range(ffi::epoch_time_ms_t ts) const -> bool {

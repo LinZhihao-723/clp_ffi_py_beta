@@ -37,8 +37,8 @@ static auto PyQuery_init(PyQuery* self, PyObject* args, PyObject* keywords) -> i
 
     assert(nullptr == self->query);
     int py_case_sensitive{1};
-    ffi::epoch_time_ms_t ts_lower_bound{Query::default_ts_lower_bound};
-    ffi::epoch_time_ms_t ts_upper_bound{Query::default_ts_upper_bound};
+    ffi::epoch_time_ms_t ts_lower_bound{Query::cDefaultTimestampLowerBound};
+    ffi::epoch_time_ms_t ts_upper_bound{Query::cDefaultTimestampUpperBound};
     PyObject* py_query_list{Py_None};
 
     if (!PyArg_ParseTupleAndKeywords(

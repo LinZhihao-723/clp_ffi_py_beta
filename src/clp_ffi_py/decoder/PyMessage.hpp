@@ -19,5 +19,4 @@ auto PyMessageTy_module_level_init(PyObject* py_module, std::vector<PyObject*>& 
         -> bool;
 auto PyMessage_get_PyType() -> PyTypeObject*;
 } // namespace clp_ffi_py::decoder
-
 #endif

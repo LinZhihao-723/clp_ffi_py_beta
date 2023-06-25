@@ -6,6 +6,9 @@
 #include <clp_ffi_py/decoder/Message.hpp>
 
 namespace clp_ffi_py::decoder {
+static std::unique_ptr<PyTypeObject, PyObjectDeleter<PyTypeObject>> PyMessage_type;
+static std::unique_ptr<PyObject, PyObjectDeleter<PyObject>> utils_get_formatted_timestamp;
+
 extern "C" {
 static auto PyMessage_new(PyTypeObject* type, PyObject* args, PyObject* keywords) -> PyObject* {
     PyMessage* self{reinterpret_cast<PyMessage*>(type->tp_alloc(type, 0))};
@@ -69,6 +72,25 @@ static auto PyMessage_wildcard_match_case_sensitive(PyMessage* self, PyObject* a
         Py_RETURN_FALSE;
     }
 }
+
+static auto PyMessage_get_raw_message(PyMessage* self, PyObject* args) -> PyObject* {
+    PyObject* timezone;
+    if (0 == PyArg_ParseTuple(args, "O", &timezone)) {
+        return nullptr;
+    }
+    std::unique_ptr<PyObject, PyObjectDeleter<PyObject>> func_args_ptr{
+            Py_BuildValue("LO", self->message->get_timestamp_ref(), timezone)};
+    auto func_args{func_args_ptr.get()};
+    if (nullptr == args) {
+        return nullptr;
+    }
+    std::unique_ptr<PyObject, PyObjectDeleter<PyObject>> timestamp_ptr{
+            PyObject_CallObject(utils_get_formatted_timestamp.get(), func_args)};
+    return PyUnicode_FromFormat(
+            "%S%s",
+            timestamp_ptr.get(),
+            self->message->get_message_ref().c_str());
+}
 }
 
 auto PyMessage_create_empty() -> PyMessage* {
@@ -121,6 +143,10 @@ static PyMethodDef PyMessage_method_table[]{
          reinterpret_cast<PyCFunction>(PyMessage_wildcard_match_case_sensitive),
          METH_VARARGS,
          "Wildcard match (case sensitive)"},
+        {"get_raw_message",
+         reinterpret_cast<PyCFunction>(PyMessage_get_raw_message),
+         METH_VARARGS,
+         "Get the raw message by formatting timestamp and message contents"},
         {nullptr}};
 
 static PyType_Slot PyMessage_slots[]{
@@ -137,7 +163,20 @@ static PyType_Spec PyMessage_type_spec{
         Py_TPFLAGS_DEFAULT,
         PyMessage_slots};
 
-static std::unique_ptr<PyTypeObject, PyObjectDeleter<PyTypeObject>> PyMessage_type;
+static auto utils_init() -> bool {
+    std::unique_ptr<PyObject, PyObjectDeleter<PyObject>> utils_module(
+            PyImport_ImportModule("clp_ffi_py.utils"));
+    auto py_utils{utils_module.get()};
+    if (nullptr == py_utils) {
+        return false;
+    }
+    utils_get_formatted_timestamp.reset(
+            PyObject_GetAttrString(py_utils, "get_formatted_timestamp"));
+    if (nullptr == utils_get_formatted_timestamp.get()) {
+        return false;
+    }
+    return true;
+}
 
 auto PyMessage_get_PyType() -> PyTypeObject* {
     return PyMessage_type.get();
@@ -149,6 +188,9 @@ auto PyMessageTy_module_level_init(PyObject* py_module, std::vector<PyObject*>& 
     PyMessage_type.reset(type);
     if (nullptr != type) {
         Py_INCREF(type);
+    }
+    if (false == utils_init()) {
+        return false;
     }
     return add_type(
             reinterpret_cast<PyObject*>(PyMessage_get_PyType()),

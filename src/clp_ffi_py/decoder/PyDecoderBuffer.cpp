@@ -157,7 +157,7 @@ static PyType_Spec PyDecoderBuffer_type_spec{
 
 static std::unique_ptr<PyTypeObject, PyObjectDeleter<PyTypeObject>> PyDecoderBuffer_type;
 
-auto PyDecoderBuffer_get_PyType(bool init) -> PyTypeObject* {
+auto PyDecoderBuffer_get_PyType() -> PyTypeObject* {
     return PyDecoderBuffer_type.get();
 }
 
@@ -170,7 +170,7 @@ auto PyDecoderBuffer_module_level_init(PyObject* py_module, std::vector<PyObject
         Py_INCREF(type);
     }
     return add_type(
-            reinterpret_cast<PyObject*>(PyDecoderBuffer_get_PyType(true)),
+            reinterpret_cast<PyObject*>(PyDecoderBuffer_get_PyType()),
             "DecoderBuffer",
             py_module,
             object_list);
