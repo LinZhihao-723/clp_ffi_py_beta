@@ -51,7 +51,7 @@ class CLPStreamReader:
     def __iter__(self) -> Iterator[Message]:
         self.metadata = decode_preamble(self.zstream, self.buffer)
         self.ref_timestamp = self.metadata.get_ref_timestamp()
-        self.timezone = dateutil.tz.gettz(self.metadata.get_timezone())
+        self.timezone = dateutil.tz.gettz(self.metadata.get_timezone_id())
         return self
 
     def __enter__(self) -> Iterator[Message]:
@@ -59,7 +59,7 @@ class CLPStreamReader:
 
     def __next__(self) -> Message:
         self.message = decode_next_message_with_query(
-            self.ref_timestamp, self.zstream, self.buffer, self.query
+            self.ref_timestamp, self.zstream, self.buffer, self.query, self.metadata
         )
         if self.message is None:
             raise StopIteration
@@ -69,11 +69,11 @@ class CLPStreamReader:
     def decompress(self, fpath: Path):
         self.metadata = decode_preamble(self.zstream, self.buffer)
         self.ref_timestamp = self.metadata.get_ref_timestamp()
-        self.timezone = dateutil.tz.gettz(self.metadata.get_timezone())
+        self.timezone = dateutil.tz.gettz(self.metadata.get_timezone_id())
         with open(fpath, "w") as file_out:
             while True:
                 self.message = decode_next_message_with_query(
-                    self.ref_timestamp, self.zstream, self.buffer, self.query
+                    self.ref_timestamp, self.zstream, self.buffer, self.query, self.metadata
                 )
                 if self.message is None:
                     break

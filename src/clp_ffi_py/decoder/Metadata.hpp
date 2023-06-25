@@ -16,18 +16,18 @@ public:
         : m_is_four_byte_encoding(true),
           m_ref_timestamp(ref_timestamp),
           m_timestamp_format(timestamp_format),
-          m_timezone(timezone) {}
+          m_timezone_id(timezone) {}
 
     auto is_using_four_byte_encoding() const -> bool { return m_is_four_byte_encoding; }
     auto get_ref_timestamp() const -> ffi::epoch_time_ms_t { return m_ref_timestamp; }
     auto get_timestamp_format() const -> std::string const& { return m_timestamp_format; }
-    auto get_timezone() const -> std::string const& { return m_timezone; }
+    auto get_timezone_id() const -> std::string const& { return m_timezone_id; }
 
 private:
     bool m_is_four_byte_encoding;
     ffi::epoch_time_ms_t m_ref_timestamp;
     std::string m_timestamp_format;
-    std::string m_timezone;
+    std::string m_timezone_id;
 };
 } // namespace clp_ffi_py::decoder
 #endif

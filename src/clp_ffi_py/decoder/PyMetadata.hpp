@@ -10,6 +10,7 @@ namespace clp_ffi_py::decoder {
 struct PyMetadata {
     PyObject_HEAD;
     Metadata* metadata;
+    PyObject* Py_timezone;
 };
 
 auto PyMetadata_init_from_json(nlohmann::json const& metadata, bool is_four_byte_encoding)

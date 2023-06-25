@@ -14,8 +14,7 @@ public:
     static constexpr ffi::epoch_time_ms_t const cDefaultTimestampUpperBound =
             std::numeric_limits<ffi::epoch_time_ms_t>::max();
 
-    static constexpr ffi::epoch_time_ms_t const cTimestampUpperBoundSafeRange =
-            60 * 1000;
+    static constexpr ffi::epoch_time_ms_t const cTimestampUpperBoundSafeRange = 60 * 1000;
 
     Query(bool case_sensitive)
         : m_case_sensitive(case_sensitive),

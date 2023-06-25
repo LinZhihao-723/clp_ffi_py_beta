@@ -19,7 +19,8 @@ static auto
 decode(ffi::epoch_time_ms_t ref_timestamp,
        PyObject* istream,
        PyDecoderBuffer* read_buffer,
-       PyQuery* query) -> PyObject* {
+       PyQuery* query,
+       PyMetadata* metadata) -> PyObject* {
     std::string decoded_message;
     ffi::epoch_time_ms_t timestamp_delta;
     while (true) {
@@ -57,7 +58,8 @@ decode(ffi::epoch_time_ms_t ref_timestamp,
             return reinterpret_cast<PyObject*>(PyMessage_create_new(
                     decoded_message,
                     ref_timestamp,
-                    read_buffer->get_num_decoded_message() - 1));
+                    read_buffer->get_num_decoded_message() - 1,
+                    metadata));
         case ffi::ir_stream::IRErrorCode_Incomplete_IR:
             if (auto num_bytes_read{read_buffer->read_from(istream)}; 0 == num_bytes_read) {
                 // PyErr_SetString(
@@ -180,56 +182,63 @@ PyObject* decode_preamble(PyObject* self, PyObject* args) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::decoder::invalid_metadata);
         return nullptr;
     }
-
     return reinterpret_cast<PyObject*>(metadata);
 }
 
 PyObject* decode_next_message(PyObject* self, PyObject* args) {
     ffi::epoch_time_ms_t ref_timestamp;
     PyObject* istream{nullptr};
-    PyObject* read_buffer_object{nullptr};
+    PyObject* read_buffer_obj{nullptr};
+    PyObject* metadata_obj{nullptr};
 
-    if (false == PyArg_ParseTuple(args, "LOO", &ref_timestamp, &istream, &read_buffer_object)) {
-        PyErr_SetString(PyExc_RuntimeError, error_messages::arg_parsing_error);
+    if (false == PyArg_ParseTuple(
+                         args,
+                         "LOO!O!",
+                         &ref_timestamp,
+                         &istream,
+                         PyDecoderBuffer_get_PyType(),
+                         &read_buffer_obj,
+                         PyMetadata_get_PyType(),
+                         &metadata_obj)) {
         return nullptr;
     }
-    if (nullptr == istream || nullptr == read_buffer_object) {
-        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::arg_nullptr_error);
-        return nullptr;
-    }
 
-    PyDecoderBuffer* read_buffer{reinterpret_cast<PyDecoderBuffer*>(read_buffer_object)};
-    return decode(ref_timestamp, istream, read_buffer, nullptr);
+    return decode(
+            ref_timestamp,
+            istream,
+            reinterpret_cast<PyDecoderBuffer*>(read_buffer_obj),
+            nullptr,
+            reinterpret_cast<PyMetadata*>(metadata_obj));
 }
 
 PyObject* decode_next_message_with_query(PyObject* self, PyObject* args) {
     ffi::epoch_time_ms_t ref_timestamp;
     PyObject* istream{nullptr};
-    PyObject* read_buffer_object{nullptr};
+    PyObject* read_buffer_obj{nullptr};
     PyObject* query_obj{nullptr};
+    PyObject* metadata_obj{nullptr};
 
-    if (false ==
-        PyArg_ParseTuple(args, "LOOO", &ref_timestamp, &istream, &read_buffer_object, &query_obj)) {
+    if (false == PyArg_ParseTuple(
+                         args,
+                         "LOO!O!O!",
+                         &ref_timestamp,
+                         &istream,
+                         PyDecoderBuffer_get_PyType(),
+                         &read_buffer_obj,
+                         PyQuery_get_PyType(),
+                         &query_obj,
+                         PyMetadata_get_PyType(),
+                         &metadata_obj)) {
         PyErr_SetString(PyExc_RuntimeError, error_messages::arg_parsing_error);
         return nullptr;
     }
-    if (nullptr == istream || nullptr == read_buffer_object || nullptr == query_obj) {
-        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::arg_nullptr_error);
-        return nullptr;
-    }
 
-    clp_ffi_py::decoder::PyQuery* query{nullptr};
-    if (Py_None != query_obj) {
-        if (PyType_IsSubtype(Py_TYPE(query_obj), PyQuery_get_PyType())) {
-            query = reinterpret_cast<clp_ffi_py::decoder::PyQuery*>(query_obj);
-        } else {
-            PyErr_SetString(PyExc_TypeError, clp_ffi_py::error_messages::py_type_error);
-            return nullptr;
-        }
-    }
-
-    PyDecoderBuffer* read_buffer{reinterpret_cast<PyDecoderBuffer*>(read_buffer_object)};
-    return decode(ref_timestamp, istream, read_buffer, query);
+    return decode(
+            ref_timestamp,
+            istream,
+            reinterpret_cast<PyDecoderBuffer*>(read_buffer_obj),
+            reinterpret_cast<PyQuery*>(query_obj),
+            reinterpret_cast<PyMetadata*>(metadata_obj));
 }
 }
 } // namespace clp_ffi_py::decoder::four_byte_decoder

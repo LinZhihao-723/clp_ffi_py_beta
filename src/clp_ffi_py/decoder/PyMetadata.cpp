@@ -8,6 +8,30 @@
 #include <clp_ffi_py/utilities.hpp>
 
 namespace clp_ffi_py::decoder {
+static std::unique_ptr<PyTypeObject, PyObjectDeleter<PyTypeObject>> PyMetadata_type;
+static std::unique_ptr<PyObject, PyObjectDeleter<PyObject>> Py_utils_get_timezone_from_timezone_id;
+
+static auto PyMetadata_set_timezone(PyMetadata* self) -> bool {
+    assert(self->metadata);
+    std::unique_ptr<PyObject, PyObjectDeleter<PyObject>> func_args_ptr{
+            Py_BuildValue("(s)", self->metadata->get_timezone_id().c_str())};
+    auto func_args{func_args_ptr.get()};
+    if (nullptr == func_args) {
+        return false;
+    }
+    self->Py_timezone =
+            PyObject_CallObject(Py_utils_get_timezone_from_timezone_id.get(), func_args);
+    if (nullptr == self->Py_timezone) {
+        return false;
+    }
+    return true;
+}
+
+static auto PyMetadata_clear(PyMetadata* self) {
+    self->metadata = nullptr;
+    self->Py_timezone = nullptr;
+}
+
 extern "C" {
 static auto PyMetadata_new(PyTypeObject* type, PyObject* args, PyObject* keywords) -> PyObject* {
     // Since tp_alloc returns <PyObject*>, we cannot use static_cast to cast it
@@ -17,7 +41,7 @@ static auto PyMetadata_new(PyTypeObject* type, PyObject* args, PyObject* keyword
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
         Py_RETURN_NONE;
     }
-    self->metadata = nullptr;
+    PyMetadata_clear(self);
     return reinterpret_cast<PyObject*>(self);
 }
 
@@ -37,14 +61,16 @@ static auto PyMetadata_init(PyMetadata* self, PyObject* args, PyObject* keywords
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
         return -1;
     }
-
-    return -1;
+    if (false == PyMetadata_set_timezone(self)) {
+        return -1;
+    }
 
     return 0;
 }
 
 void PyMetadata_dealloc(PyMetadata* self) {
     delete self->metadata;
+    Py_XDECREF(self->Py_timezone);
     Py_TYPE(self)->tp_free(reinterpret_cast<PyObject*>(self));
 }
 
@@ -67,9 +93,9 @@ static auto PyMetadata_get_timestamp_format(PyMetadata* self) -> PyObject* {
     return PyUnicode_FromString(self->metadata->get_timestamp_format().c_str());
 }
 
-static auto PyMetadata_get_timezone(PyMetadata* self) -> PyObject* {
+static auto PyMetadata_get_timezone_id(PyMetadata* self) -> PyObject* {
     assert(self->metadata);
-    return PyUnicode_FromString(self->metadata->get_timezone().c_str());
+    return PyUnicode_FromString(self->metadata->get_timezone_id().c_str());
 }
 }
 
@@ -80,8 +106,13 @@ auto PyMetadata_init_from_json(nlohmann::json const& metadata, bool is_four_byte
     if (nullptr == self) {
         return nullptr;
     }
+    PyMetadata_clear(self);
     self->metadata = new Metadata(metadata, is_four_byte_encoding);
     if (nullptr == self->metadata) {
+        Py_DECREF(self);
+        return nullptr;
+    }
+    if (false == PyMetadata_set_timezone(self)) {
         Py_DECREF(self);
         return nullptr;
     }
@@ -104,10 +135,10 @@ static PyMethodDef PyMetadata_method_table[]{
          METH_NOARGS,
          "Get timestamp format as a string."},
 
-        {"get_timezone",
-         reinterpret_cast<PyCFunction>(PyMetadata_get_timezone),
+        {"get_timezone_id",
+         reinterpret_cast<PyCFunction>(PyMetadata_get_timezone_id),
          METH_NOARGS,
-         "Get timezone as a string."},
+         "Get timezone id as a string."},
 
         {nullptr}};
 
@@ -125,14 +156,30 @@ static PyType_Spec PyMetadata_type_spec{
         Py_TPFLAGS_DEFAULT,
         PyMetadata_slots};
 
-static std::unique_ptr<PyTypeObject, PyObjectDeleter<PyTypeObject>> PyMetadata_type;
-
 auto PyMetadata_get_PyType() -> PyTypeObject* {
     return PyMetadata_type.get();
 }
 
+static auto utils_init() -> bool {
+    std::unique_ptr<PyObject, PyObjectDeleter<PyObject>> utils_module(
+            PyImport_ImportModule("clp_ffi_py.utils"));
+    auto py_utils{utils_module.get()};
+    if (nullptr == py_utils) {
+        return false;
+    }
+    Py_utils_get_timezone_from_timezone_id.reset(
+            PyObject_GetAttrString(py_utils, "get_timezone_from_timezone_id"));
+    if (nullptr == Py_utils_get_timezone_from_timezone_id.get()) {
+        return false;
+    }
+    return true;
+}
+
 auto PyMetadata_module_level_init(PyObject* py_module, std::vector<PyObject*>& object_list)
         -> bool {
+    if (false == utils_init()) {
+        return false;
+    }
     auto type{reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyMetadata_type_spec))};
     PyMetadata_type.reset(type);
     if (nullptr != type) {

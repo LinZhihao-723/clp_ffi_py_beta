@@ -7,7 +7,7 @@
 
 namespace clp_ffi_py::decoder {
 static std::unique_ptr<PyTypeObject, PyObjectDeleter<PyTypeObject>> PyMessage_type;
-static std::unique_ptr<PyObject, PyObjectDeleter<PyObject>> utils_get_formatted_timestamp;
+static std::unique_ptr<PyObject, PyObjectDeleter<PyObject>> Py_utils_get_formatted_timestamp;
 
 extern "C" {
 static auto PyMessage_new(PyTypeObject* type, PyObject* args, PyObject* keywords) -> PyObject* {
@@ -22,11 +22,13 @@ static auto PyMessage_new(PyTypeObject* type, PyObject* args, PyObject* keywords
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
         Py_RETURN_NONE;
     }
+    self->metadata = nullptr;
     return reinterpret_cast<PyObject*>(self);
 }
 
 static void PyMessage_dealloc(PyMessage* self) {
     delete self->message;
+    Py_XDECREF(self->metadata);
     Py_TYPE(self)->tp_free(reinterpret_cast<PyObject*>(self));
 }
 
@@ -73,11 +75,16 @@ static auto PyMessage_wildcard_match_case_sensitive(PyMessage* self, PyObject* a
     }
 }
 
-static auto PyMessage_get_raw_message(PyMessage* self, PyObject* args) -> PyObject* {
-    PyObject* timezone;
-    if (0 == PyArg_ParseTuple(args, "O", &timezone)) {
+static auto PyMessage_get_raw_message(PyMessage* self, PyObject* args, PyObject* keywords)
+        -> PyObject* {
+    static char keyword_timezone[] = "timezone";
+    static char* key_table[] = {static_cast<char*>(keyword_timezone), nullptr};
+
+    PyObject* input_timezone{nullptr};
+    if (0 == PyArg_ParseTupleAndKeywords(args, keywords, "|O", key_table, &input_timezone)) {
         return nullptr;
     }
+    PyObject* timezone{(nullptr != input_timezone) ? input_timezone : self->metadata->Py_timezone};
     std::unique_ptr<PyObject, PyObjectDeleter<PyObject>> func_args_ptr{
             Py_BuildValue("LO", self->message->get_timestamp_ref(), timezone)};
     auto func_args{func_args_ptr.get()};
@@ -85,7 +92,7 @@ static auto PyMessage_get_raw_message(PyMessage* self, PyObject* args) -> PyObje
         return nullptr;
     }
     std::unique_ptr<PyObject, PyObjectDeleter<PyObject>> timestamp_ptr{
-            PyObject_CallObject(utils_get_formatted_timestamp.get(), func_args)};
+            PyObject_CallObject(Py_utils_get_formatted_timestamp.get(), func_args)};
     return PyUnicode_FromFormat(
             "%S%s",
             timestamp_ptr.get(),
@@ -93,21 +100,11 @@ static auto PyMessage_get_raw_message(PyMessage* self, PyObject* args) -> PyObje
 }
 }
 
-auto PyMessage_create_empty() -> PyMessage* {
-    PyMessage* self{reinterpret_cast<PyMessage*>(PyObject_New(PyMessage, PyMessage_get_PyType()))};
-    if (nullptr == self) {
-        return nullptr;
-    }
-    self->message = new Message();
-    if (nullptr == self->message) {
-        Py_DECREF(self);
-        return nullptr;
-    }
-    return self;
-}
-
-auto PyMessage_create_new(std::string message, ffi::epoch_time_ms_t timestamp, size_t message_idx)
-        -> PyMessage* {
+auto PyMessage_create_new(
+        std::string message,
+        ffi::epoch_time_ms_t timestamp,
+        size_t message_idx,
+        PyMetadata* metadata) -> PyMessage* {
     PyMessage* self{reinterpret_cast<PyMessage*>(PyObject_New(PyMessage, PyMessage_get_PyType()))};
     if (nullptr == self) {
         PyErr_SetString(PyExc_MemoryError, clp_ffi_py::error_messages::out_of_memory_error);
@@ -119,6 +116,8 @@ auto PyMessage_create_new(std::string message, ffi::epoch_time_ms_t timestamp, s
         PyErr_SetString(PyExc_MemoryError, clp_ffi_py::error_messages::out_of_memory_error);
         return nullptr;
     }
+    self->metadata = metadata;
+    Py_INCREF(self->metadata);
     return self;
 }
 
@@ -145,7 +144,7 @@ static PyMethodDef PyMessage_method_table[]{
          "Wildcard match (case sensitive)"},
         {"get_raw_message",
          reinterpret_cast<PyCFunction>(PyMessage_get_raw_message),
-         METH_VARARGS,
+         METH_KEYWORDS | METH_VARARGS,
          "Get the raw message by formatting timestamp and message contents"},
         {nullptr}};
 
@@ -170,9 +169,9 @@ static auto utils_init() -> bool {
     if (nullptr == py_utils) {
         return false;
     }
-    utils_get_formatted_timestamp.reset(
+    Py_utils_get_formatted_timestamp.reset(
             PyObject_GetAttrString(py_utils, "get_formatted_timestamp"));
-    if (nullptr == utils_get_formatted_timestamp.get()) {
+    if (nullptr == Py_utils_get_formatted_timestamp.get()) {
         return false;
     }
     return true;
@@ -184,13 +183,13 @@ auto PyMessage_get_PyType() -> PyTypeObject* {
 
 auto PyMessageTy_module_level_init(PyObject* py_module, std::vector<PyObject*>& object_list)
         -> bool {
+    if (false == utils_init()) {
+        return false;
+    }
     auto type{reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyMessage_type_spec))};
     PyMessage_type.reset(type);
     if (nullptr != type) {
         Py_INCREF(type);
-    }
-    if (false == utils_init()) {
-        return false;
     }
     return add_type(
             reinterpret_cast<PyObject*>(PyMessage_get_PyType()),

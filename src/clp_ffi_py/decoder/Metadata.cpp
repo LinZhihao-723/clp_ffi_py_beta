@@ -58,6 +58,6 @@ Metadata::Metadata(nlohmann::json const& metadata, bool is_four_byte_encoding) {
                 __LINE__,
                 "TimezoneID cannot be found in the metadata.");
     }
-    m_timezone = metadata[timezone_key];
+    m_timezone_id = metadata[timezone_key];
 }
 } // namespace clp_ffi_py::decoder
