@@ -11,7 +11,7 @@ namespace clp_ffi_py::decoder {
 static std::unique_ptr<PyTypeObject, PyObjectDeleter<PyTypeObject>> PyMetadata_type;
 static std::unique_ptr<PyObject, PyObjectDeleter<PyObject>> Py_utils_get_timezone_from_timezone_id;
 
-static auto PyMetadata_set_timezone(PyMetadata* self) -> bool {
+static auto PyMetadata_init_timezone(PyMetadata* self) -> bool {
     assert(self->metadata);
     std::unique_ptr<PyObject, PyObjectDeleter<PyObject>> func_args_ptr{
             Py_BuildValue("(s)", self->metadata->get_timezone_id().c_str())};
@@ -61,7 +61,7 @@ static auto PyMetadata_init(PyMetadata* self, PyObject* args, PyObject* keywords
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
         return -1;
     }
-    if (false == PyMetadata_set_timezone(self)) {
+    if (false == PyMetadata_init_timezone(self)) {
         return -1;
     }
 
@@ -112,7 +112,7 @@ auto PyMetadata_init_from_json(nlohmann::json const& metadata, bool is_four_byte
         Py_DECREF(self);
         return nullptr;
     }
-    if (false == PyMetadata_set_timezone(self)) {
+    if (false == PyMetadata_init_timezone(self)) {
         Py_DECREF(self);
         return nullptr;
     }
@@ -142,11 +142,20 @@ static PyMethodDef PyMetadata_method_table[]{
 
         {nullptr}};
 
+static PyMemberDef PyMetadata_members[] = {
+        {"timezone",
+         T_OBJECT,
+         offsetof(PyMetadata, Py_timezone),
+         READONLY,
+         "Read only timezone stored as tzinfo"},
+        {nullptr}};
+
 static PyType_Slot PyMetadata_slots[]{
         {Py_tp_dealloc, reinterpret_cast<void*>(PyMetadata_dealloc)},
         {Py_tp_methods, PyMetadata_method_table},
         {Py_tp_init, reinterpret_cast<void*>(PyMetadata_init)},
         {Py_tp_new, reinterpret_cast<void*>(PyMetadata_new)},
+        {Py_tp_members, PyMetadata_members},
         {0, nullptr}};
 
 static PyType_Spec PyMetadata_type_spec{

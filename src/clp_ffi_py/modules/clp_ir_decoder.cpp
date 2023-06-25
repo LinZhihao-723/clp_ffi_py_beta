@@ -10,17 +10,13 @@
 
 static PyMethodDef DecoderMethods[] = {
         {"decode_preamble",
-         clp_ffi_py::decoder::four_byte_decoder::decode_preamble,
+         reinterpret_cast<PyCFunction>(clp_ffi_py::decoder::four_byte_decoder::decode_preamble),
          METH_VARARGS,
          "Decode a preamble and return a PyMetadata object."},
         {"decode_next_message",
-         clp_ffi_py::decoder::four_byte_decoder::decode_next_message,
-         METH_VARARGS,
+         reinterpret_cast<PyCFunction>(clp_ffi_py::decoder::four_byte_decoder::decode_next_message),
+         METH_VARARGS | METH_KEYWORDS,
          "Decode next message and return a PyMessage object."},
-        {"decode_next_message_with_query",
-         clp_ffi_py::decoder::four_byte_decoder::decode_next_message_with_query,
-         METH_VARARGS,
-         "Decode next message and return a PyMessage object that matches the given query."},
         {NULL, NULL, 0, NULL}};
 
 static struct PyModuleDef clp_ir_decoder =

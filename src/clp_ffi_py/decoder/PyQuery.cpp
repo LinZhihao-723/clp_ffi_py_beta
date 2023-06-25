@@ -28,7 +28,7 @@ static auto PyQuery_init(PyQuery* self, PyObject* args, PyObject* keywords) -> i
     static char keyword_case_sensitive[] = "case_sensitive";
     static char keyword_ts_lower_bound[] = "ts_lower_bound";
     static char keyword_ts_upper_bound[] = "ts_upper_bound";
-    static char* key_table[] = {
+    static char* keyword_table[] = {
             static_cast<char*>(keyword_query_list),
             static_cast<char*>(keyword_case_sensitive),
             static_cast<char*>(keyword_ts_lower_bound),
@@ -41,15 +41,15 @@ static auto PyQuery_init(PyQuery* self, PyObject* args, PyObject* keywords) -> i
     ffi::epoch_time_ms_t ts_upper_bound{Query::cDefaultTimestampUpperBound};
     PyObject* py_query_list{Py_None};
 
-    if (!PyArg_ParseTupleAndKeywords(
-                args,
-                keywords,
-                "|OpLL",
-                key_table,
-                &py_query_list,
-                &py_case_sensitive,
-                &ts_lower_bound,
-                &ts_upper_bound)) {
+    if (false == PyArg_ParseTupleAndKeywords(
+                         args,
+                         keywords,
+                         "|OpLL",
+                         keyword_table,
+                         &py_query_list,
+                         &py_case_sensitive,
+                         &ts_lower_bound,
+                         &ts_upper_bound)) {
         return -1;
     }
 

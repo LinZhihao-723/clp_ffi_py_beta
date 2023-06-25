@@ -185,21 +185,44 @@ PyObject* decode_preamble(PyObject* self, PyObject* args) {
     return reinterpret_cast<PyObject*>(metadata);
 }
 
-PyObject* decode_next_message(PyObject* self, PyObject* args) {
+PyObject* decode_next_message(PyObject* self, PyObject* args, PyObject* keywords) {
+    static char keyword_ref_timestamp[] = "ref_timestamp";
+    static char keyword_istream[] = "istream";
+    static char keyword_read_buffer[] = "read_buffer";
+    static char keyword_metadata[] = "metadata";
+    static char keyword_query[] = "query";
+    static char* keyword_table[] = {
+            static_cast<char*>(keyword_ref_timestamp),
+            static_cast<char*>(keyword_istream),
+            static_cast<char*>(keyword_read_buffer),
+            static_cast<char*>(keyword_metadata),
+            static_cast<char*>(keyword_query),
+            nullptr};
+
     ffi::epoch_time_ms_t ref_timestamp;
     PyObject* istream{nullptr};
     PyObject* read_buffer_obj{nullptr};
     PyObject* metadata_obj{nullptr};
+    PyObject* query_obj{Py_None};
 
-    if (false == PyArg_ParseTuple(
+    if (false == PyArg_ParseTupleAndKeywords(
                          args,
-                         "LOO!O!",
+                         keywords,
+                         "LOO!O!|O",
+                         keyword_table,
                          &ref_timestamp,
                          &istream,
                          PyDecoderBuffer_get_PyType(),
                          &read_buffer_obj,
                          PyMetadata_get_PyType(),
-                         &metadata_obj)) {
+                         &metadata_obj,
+                         &query_obj)) {
+        return nullptr;
+    }
+
+    bool is_query_given{Py_None != query_obj};
+    if (is_query_given && false == PyObject_TypeCheck(query_obj, PyQuery_get_PyType())) {
+        PyErr_SetString(PyExc_TypeError, clp_ffi_py::error_messages::py_type_error);
         return nullptr;
     }
 
@@ -207,37 +230,7 @@ PyObject* decode_next_message(PyObject* self, PyObject* args) {
             ref_timestamp,
             istream,
             reinterpret_cast<PyDecoderBuffer*>(read_buffer_obj),
-            nullptr,
-            reinterpret_cast<PyMetadata*>(metadata_obj));
-}
-
-PyObject* decode_next_message_with_query(PyObject* self, PyObject* args) {
-    ffi::epoch_time_ms_t ref_timestamp;
-    PyObject* istream{nullptr};
-    PyObject* read_buffer_obj{nullptr};
-    PyObject* query_obj{nullptr};
-    PyObject* metadata_obj{nullptr};
-
-    if (false == PyArg_ParseTuple(
-                         args,
-                         "LOO!O!O!",
-                         &ref_timestamp,
-                         &istream,
-                         PyDecoderBuffer_get_PyType(),
-                         &read_buffer_obj,
-                         PyQuery_get_PyType(),
-                         &query_obj,
-                         PyMetadata_get_PyType(),
-                         &metadata_obj)) {
-        PyErr_SetString(PyExc_RuntimeError, error_messages::arg_parsing_error);
-        return nullptr;
-    }
-
-    return decode(
-            ref_timestamp,
-            istream,
-            reinterpret_cast<PyDecoderBuffer*>(read_buffer_obj),
-            reinterpret_cast<PyQuery*>(query_obj),
+            is_query_given ? reinterpret_cast<PyQuery*>(query_obj) : nullptr,
             reinterpret_cast<PyMetadata*>(metadata_obj));
 }
 }

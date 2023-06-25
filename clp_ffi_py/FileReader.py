@@ -1,7 +1,7 @@
 from clp_ffi_py.CLPIRDecoder import (
     DecoderBuffer,
     decode_preamble,
-    decode_next_message_with_query,
+    decode_next_message,
     Metadata,
     Message,
     Query,
@@ -13,6 +13,7 @@ from pathlib import Path
 from datetime import datetime, tzinfo
 import dateutil.tz
 from zstandard import ZstdDecompressor, ZstdDecompressionReader
+
 
 class CLPStreamReader:
     def __init__(
@@ -27,7 +28,6 @@ class CLPStreamReader:
         )
         self.buffer: DecoderBuffer = DecoderBuffer()
         self.timestamp_format: Optional[str] = timestamp_format
-        self.timezone: Optional[tzinfo] = None
         self.metadata: Optional[Metadata] = None
         self.message: Optional[Message] = None
         self.ref_timestamp: int = 0
@@ -35,10 +35,6 @@ class CLPStreamReader:
 
     def close(self) -> None:
         self.zstream.close()
-
-    def get_timezone(self) -> tzinfo:
-        assert self.timezone is not None
-        return self.timezone
 
     def __exit__(
         self,
@@ -51,15 +47,14 @@ class CLPStreamReader:
     def __iter__(self) -> Iterator[Message]:
         self.metadata = decode_preamble(self.zstream, self.buffer)
         self.ref_timestamp = self.metadata.get_ref_timestamp()
-        self.timezone = dateutil.tz.gettz(self.metadata.get_timezone_id())
         return self
 
     def __enter__(self) -> Iterator[Message]:
         return self
 
     def __next__(self) -> Message:
-        self.message = decode_next_message_with_query(
-            self.ref_timestamp, self.zstream, self.buffer, self.query, self.metadata
+        self.message = decode_next_message(
+            self.ref_timestamp, self.zstream, self.buffer, self.metadata, self.query
         )
         if self.message is None:
             raise StopIteration
@@ -69,17 +64,17 @@ class CLPStreamReader:
     def decompress(self, fpath: Path):
         self.metadata = decode_preamble(self.zstream, self.buffer)
         self.ref_timestamp = self.metadata.get_ref_timestamp()
-        self.timezone = dateutil.tz.gettz(self.metadata.get_timezone_id())
         with open(fpath, "w") as file_out:
             while True:
-                self.message = decode_next_message_with_query(
-                    self.ref_timestamp, self.zstream, self.buffer, self.query, self.metadata
+                self.message = decode_next_message(
+                    self.ref_timestamp, self.zstream, self.buffer, self.metadata
                 )
                 if self.message is None:
                     break
                 self.ref_timestamp = self.message.get_timestamp()
-                file_out.write(self.get_raw_message(self.message))
+                file_out.write(self.message.get_raw_message(self.metadata.timezone))
         self.close()
+
 
 class CLPFileReader(CLPStreamReader):
     def __init__(
