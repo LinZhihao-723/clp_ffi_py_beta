@@ -29,7 +29,7 @@ static auto PyMetadata_init_timezone(PyMetadata* self) -> bool {
 
 static auto PyMetadata_clear(PyMetadata* self) {
     self->metadata = nullptr;
-    self->Py_timezone = nullptr;
+    self->Py_timezone = Py_None;
 }
 
 extern "C" {

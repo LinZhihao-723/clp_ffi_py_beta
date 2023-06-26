@@ -1,8 +1,11 @@
 from datetime import datetime, tzinfo
+from typing import Optional
 import dateutil.tz
 
 
-def get_formatted_timestamp(timestamp: int, timezone: tzinfo) -> str:
+def get_formatted_timestamp(timestamp: int, timezone: Optional[tzinfo]) -> str:
+    if timezone is None:
+        timezone = dateutil.tz.UTC
     dt: datetime = datetime.fromtimestamp(timestamp / 1000, timezone)
     return dt.isoformat(sep=" ", timespec="milliseconds")
 

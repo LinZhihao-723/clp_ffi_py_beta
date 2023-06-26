@@ -8,14 +8,25 @@ namespace clp_ffi_py::decoder {
 class Message {
 public:
     explicit Message() = default;
-    explicit Message(std::string message, ffi::epoch_time_ms_t timestamp, size_t message_idx)
+    explicit Message(
+            std::string& message,
+            std::string& formatted_timestamp,
+            ffi::epoch_time_ms_t timestamp,
+            size_t message_idx)
+        : m_message(std::move(message)),
+          m_formatted_timestamp(std::move(formatted_timestamp)),
+          m_timestamp(timestamp),
+          m_message_idx(message_idx){};
+    explicit Message(std::string& message, ffi::epoch_time_ms_t timestamp, size_t message_idx)
         : m_message(std::move(message)),
           m_timestamp(timestamp),
           m_message_idx(message_idx){};
 
-    auto get_message_ref() -> std::string& { return m_message; }
+    auto get_message() const -> std::string { return m_message; }
 
-    auto get_timestamp_ref() -> ffi::epoch_time_ms_t& { return m_timestamp; }
+    auto get_timestamp() const -> ffi::epoch_time_ms_t { return m_timestamp; }
+
+    auto get_formatted_timestamp() const -> std::string { return m_formatted_timestamp; }
 
     auto get_message_view() const -> std::string_view { return std::string_view(m_message); }
 
@@ -43,8 +54,13 @@ public:
         return wildcard_match_unsafe(m_message, wildcard, true);
     }
 
+    [[nodiscard]] auto has_formatted_timestamp() const -> bool {
+        return (false == m_formatted_timestamp.empty());
+    }
+
 private:
     std::string m_message;
+    std::string m_formatted_timestamp;
     ffi::epoch_time_ms_t m_timestamp;
     size_t m_message_idx;
 };

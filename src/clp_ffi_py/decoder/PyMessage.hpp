@@ -11,7 +11,8 @@ namespace clp_ffi_py::decoder {
 struct PyMessage {
     PyObject_HEAD;
     Message* message;
-    PyMetadata* metadata;
+    PyMetadata* Py_metadata;
+    void set_metadata(PyMetadata* metadata);
 };
 
 auto PyMessage_create_new(
