@@ -26,6 +26,13 @@ void* get_capsule(PyObject* module, char const* key);
 
 void debug_message(std::string const& msg);
 
+auto parse_PyString(PyObject* Py_string, std::string& str) -> bool;
+
+template <typename int_type>
+auto parse_PyInt(PyObject* Py_int, int_type& val) -> bool;
+
 typedef bool (*TypeInitFunc)(PyObject*, std::vector<PyObject*>&);
+
+#include <clp_ffi_py/utilities.tpp>
 
 #endif

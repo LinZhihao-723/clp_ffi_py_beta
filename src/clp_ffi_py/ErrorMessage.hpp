@@ -14,6 +14,8 @@ constexpr char return_error[] = "Python method doesn't properly return.";
 constexpr char not_implemented_error[] = "Feature not implemented.";
 constexpr char capsule_fail_to_load_error[] = "Failed to load the capsule.";
 constexpr char py_type_error[] = "Wrong Py Type received.";
+constexpr char pickled_state_error[] = "Pickled state object is not a dict.";
+constexpr char pickled_key_error_template[] = "No \"%s\" in pickled dict.";
 
 namespace encoder {
     constexpr char const* cTimestampError =

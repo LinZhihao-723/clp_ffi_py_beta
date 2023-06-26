@@ -32,17 +32,55 @@ extern "C" {
 static auto PyMessage_new(PyTypeObject* type, PyObject* args, PyObject* keywords) -> PyObject* {
     PyMessage* self{reinterpret_cast<PyMessage*>(type->tp_alloc(type, 0))};
     if (nullptr == self) {
-        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
+        PyErr_SetString(PyExc_MemoryError, clp_ffi_py::error_messages::out_of_memory_error);
         Py_RETURN_NONE;
     }
     self->Py_metadata = reinterpret_cast<PyMetadata*>(Py_None);
-    self->message = new Message();
-    if (nullptr == self->message) {
-        Py_TYPE(self)->tp_free(reinterpret_cast<PyObject*>(self));
-        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
-        Py_RETURN_NONE;
-    }
+    self->message = nullptr;
     return reinterpret_cast<PyObject*>(self);
+}
+
+static auto PyMessage_init(PyMessage* self, PyObject* args, PyObject* keywords) -> int {
+    static char keyword_message[] = "message";
+    static char keyword_timestamp[] = "timestamp";
+    static char keyword_message_idx[] = "message_idx";
+    static char keyword_metadata[] = "metadata";
+    static char* keyword_table[]{
+            static_cast<char*>(keyword_message),
+            static_cast<char*>(keyword_timestamp),
+            static_cast<char*>(keyword_message_idx),
+            static_cast<char*>(keyword_metadata),
+            nullptr};
+
+    char const* message_data;
+    ffi::epoch_time_ms_t timestamp;
+    size_t message_idx{0};
+    PyObject* metadata{Py_None};
+    if (false == PyArg_ParseTupleAndKeywords(
+                         args,
+                         keywords,
+                         "sL|KO",
+                         keyword_table,
+                         &message_data,
+                         &timestamp,
+                         &message_idx,
+                         &metadata)) {
+        return -1;
+    }
+
+    std::string message{message_data};
+    self->message = new Message(message, timestamp, message_idx);
+    if (nullptr == self->message) {
+        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
+        std::cerr << "WTF?\n";
+        return -1;
+    }
+    if (Py_None != metadata && false == PyObject_TypeCheck(metadata, PyMetadata_get_PyType())) {
+        PyErr_SetString(PyExc_TypeError, clp_ffi_py::error_messages::py_type_error);
+        return -1;
+    }
+    self->Py_metadata = reinterpret_cast<PyMetadata*>(metadata);
+    return 0;
 }
 
 static void PyMessage_dealloc(PyMessage* self) {
@@ -100,6 +138,7 @@ static auto PyMessage_get_raw_message(PyMessage* self, PyObject* args, PyObject*
     static char* key_table[] = {static_cast<char*>(keyword_timezone), nullptr};
 
     PyObject* timezone{Py_None};
+    auto cache_formatted_timestamp{false};
     if (0 == PyArg_ParseTupleAndKeywords(args, keywords, "|O", key_table, &timezone)) {
         return nullptr;
     }
@@ -113,6 +152,7 @@ static auto PyMessage_get_raw_message(PyMessage* self, PyObject* args, PyObject*
                     self->message->get_message().c_str());
         } else if (reinterpret_cast<PyMetadata*>(Py_None) != self->Py_metadata) {
             timezone = self->Py_metadata->Py_timezone;
+            cache_formatted_timestamp = true;
         }
     }
 
@@ -122,15 +162,119 @@ static auto PyMessage_get_raw_message(PyMessage* self, PyObject* args, PyObject*
     if (nullptr == timestamp_PyString) {
         return nullptr;
     }
-    return PyUnicode_FromFormat("%S%s", timestamp_PyString, self->message->get_message().c_str());
-}
-
-static auto PyMessage_set_metadata(PyMessage* self, PyObject* args) {
-    PyObject* metadata{nullptr};
-    if (0 == PyArg_ParseTuple(args, "O!", PyMetadata_get_PyType(), &metadata)) {
+    std::string formatted_timestamp;
+    if (false == parse_PyString(timestamp_PyString, formatted_timestamp)) {
         return nullptr;
     }
-    self->set_metadata(reinterpret_cast<PyMetadata*>(metadata));
+    if (cache_formatted_timestamp) {
+        self->message->set_formatted_timestamp(formatted_timestamp);
+    }
+    return PyUnicode_FromFormat(
+            "%s%s",
+            formatted_timestamp.c_str(),
+            self->message->get_message().c_str());
+}
+
+static constexpr char cStateMessage[] = "message";
+static constexpr char cStateFormattedTimestamp[] = "formatted_timestamp";
+static constexpr char cStateTimestamp[] = "timestamp";
+static constexpr char cStateMessageIdx[] = "message_idx";
+
+static auto PyMessage___getstate__(PyMessage* self) -> PyObject* {
+    assert(self->message);
+    if (false == self->message->has_formatted_timestamp()) {
+        PyObject* timezone{
+                (reinterpret_cast<PyMetadata*>(Py_None) == self->Py_metadata)
+                        ? Py_None
+                        : self->Py_metadata->Py_timezone};
+        std::unique_ptr<PyObject, PyObjectDeleter<PyObject>> timestamp_PyString_ptr{
+                get_formatted_timestamp_as_PyString(self->message->get_timestamp(), timezone)};
+        auto timestamp_PyString{timestamp_PyString_ptr.get()};
+        if (nullptr == timestamp_PyString) {
+            return nullptr;
+        }
+        char const* timestamp_str{PyUnicode_AsUTF8(timestamp_PyString)};
+        std::string formatted_timestamp{std::string(timestamp_str)};
+        self->message->set_formatted_timestamp(formatted_timestamp);
+    }
+
+    return Py_BuildValue(
+            "{sssssLsK}",
+            cStateMessage,
+            self->message->get_message().c_str(),
+            cStateFormattedTimestamp,
+            self->message->get_formatted_timestamp().c_str(),
+            cStateTimestamp,
+            self->message->get_timestamp(),
+            cStateMessageIdx,
+            self->message->get_message_idx());
+}
+
+static auto PyMessage___setstate__(PyMessage* self, PyObject* state) -> PyObject* {
+    if (false == PyDict_CheckExact(state)) {
+        PyErr_SetString(PyExc_ValueError, clp_ffi_py::error_messages::pickled_state_error);
+        return nullptr;
+    }
+
+    auto message_obj{PyDict_GetItemString(state, cStateMessage)};
+    if (nullptr == message_obj) {
+        PyErr_Format(
+                PyExc_KeyError,
+                clp_ffi_py::error_messages::pickled_key_error_template,
+                cStateMessage);
+        return nullptr;
+    }
+    std::string message;
+    if (false == parse_PyString(message_obj, message)) {
+        return nullptr;
+    }
+
+    auto formatted_timestamp_obj{PyDict_GetItemString(state, cStateFormattedTimestamp)};
+    if (nullptr == formatted_timestamp_obj) {
+        PyErr_Format(
+                PyExc_KeyError,
+                clp_ffi_py::error_messages::pickled_key_error_template,
+                cStateFormattedTimestamp);
+        return nullptr;
+    }
+    std::string formatted_timestamp;
+    if (false == parse_PyString(formatted_timestamp_obj, formatted_timestamp)) {
+        return nullptr;
+    }
+
+    auto timestamp_obj{PyDict_GetItemString(state, cStateTimestamp)};
+    if (nullptr == timestamp_obj) {
+        PyErr_Format(
+                PyExc_KeyError,
+                clp_ffi_py::error_messages::pickled_key_error_template,
+                cStateTimestamp);
+        return nullptr;
+    }
+    ffi::epoch_time_ms_t timestamp;
+    if (false == parse_PyInt<ffi::epoch_time_ms_t>(timestamp_obj, timestamp)) {
+        return nullptr;
+    }
+
+    auto message_idx_obj{PyDict_GetItemString(state, cStateMessageIdx)};
+    if (nullptr == message_idx_obj) {
+        PyErr_Format(
+                PyExc_KeyError,
+                clp_ffi_py::error_messages::pickled_key_error_template,
+                cStateMessageIdx);
+        return nullptr;
+    }
+    size_t message_idx;
+    if (false == parse_PyInt<size_t>(message_idx_obj, message_idx)) {
+        return nullptr;
+    }
+
+    self->message = new Message(message, formatted_timestamp, timestamp, message_idx);
+    if (nullptr == self->message) {
+        PyErr_SetString(PyExc_MemoryError, clp_ffi_py::error_messages::out_of_memory_error);
+        return nullptr;
+    }
+
+    Py_RETURN_NONE;
 }
 }
 
@@ -144,19 +288,6 @@ auto PyMessage_create_new(
         PyErr_SetString(PyExc_MemoryError, clp_ffi_py::error_messages::out_of_memory_error);
         return nullptr;
     }
-
-    // std::unique_ptr<PyObject, PyObjectDeleter<PyObject>> timestamp_PyString_ptr{
-    //         get_formatted_timestamp_as_PyString(
-    //                 self->message->get_timestamp(),
-    //                 metadata->Py_timezone)};
-    // auto timestamp_PyString{timestamp_PyString_ptr.get()};
-    // if (nullptr == timestamp_PyString) {
-    //     return nullptr;
-    // }
-    // Py_ssize_t timestamp_str_size{0};
-    // char const* timestamp_str{PyUnicode_AsUTF8AndSize(timestamp_PyString, &timestamp_str_size)};
-    // std::string formatted_timestamp{std::string(timestamp_str, timestamp_str_size)};
-    // self->message = new Message(message, formatted_timestamp, timestamp, message_idx);
 
     self->Py_metadata = reinterpret_cast<PyMetadata*>(Py_None);
     self->message = new Message(message, timestamp, message_idx);
@@ -202,10 +333,14 @@ static PyMethodDef PyMessage_method_table[]{
          reinterpret_cast<PyCFunction>(PyMessage_get_raw_message),
          METH_KEYWORDS | METH_VARARGS,
          "Get the raw message by formatting timestamp and message contents"},
-        {"set_metadata",
-         reinterpret_cast<PyCFunction>(PyMessage_set_metadata),
-         METH_VARARGS,
-         "Set the metadata field"},
+        {"__getstate__",
+         reinterpret_cast<PyCFunction>(PyMessage___getstate__),
+         METH_NOARGS,
+         "Pickle the Message object"},
+        {"__setstate__",
+         reinterpret_cast<PyCFunction>(PyMessage___setstate__),
+         METH_O,
+         "Un-pickle the Message object"},
         {nullptr}};
 
 static PyType_Slot PyMessage_slots[]{
@@ -214,10 +349,11 @@ static PyType_Slot PyMessage_slots[]{
         {Py_tp_init, nullptr},
         {Py_tp_new, reinterpret_cast<void*>(PyMessage_new)},
         {Py_tp_members, PyMessage_members},
+        {Py_tp_init, reinterpret_cast<void*>(PyMessage_init)},
         {0, nullptr}};
 
 static PyType_Spec PyMessage_type_spec{
-        "CLPIRDecoder.Message",
+        "clp_ffi_py.CLPIRDecoder.Message",
         sizeof(PyMessage),
         0,
         Py_TPFLAGS_DEFAULT,

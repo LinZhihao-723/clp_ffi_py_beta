@@ -186,12 +186,12 @@ PyObject* decode_preamble(PyObject* self, PyObject* args) {
 }
 
 PyObject* decode_next_message(PyObject* self, PyObject* args, PyObject* keywords) {
-    static char keyword_ref_timestamp[] = "ref_timestamp";
-    static char keyword_istream[] = "istream";
-    static char keyword_read_buffer[] = "read_buffer";
-    static char keyword_metadata[] = "metadata";
-    static char keyword_query[] = "query";
-    static char* keyword_table[] = {
+    static char keyword_ref_timestamp[]{"ref_timestamp"};
+    static char keyword_istream[]{"istream"};
+    static char keyword_read_buffer[]{"read_buffer"};
+    static char keyword_metadata[]{"metadata"};
+    static char keyword_query[]{"query"};
+    static char* keyword_table[]{
             static_cast<char*>(keyword_ref_timestamp),
             static_cast<char*>(keyword_istream),
             static_cast<char*>(keyword_read_buffer),
