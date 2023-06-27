@@ -28,6 +28,41 @@ static auto get_formatted_timestamp_as_PyString(ffi::epoch_time_ms_t ts, PyObjec
     return PyObject_CallObject(Py_utils_get_formatted_timestamp.get(), func_args);
 }
 
+static auto get_formatted_message(PyMessage* self, PyObject* timezone) -> PyObject* {
+    auto cache_formatted_timestamp{false};
+    if (Py_None == timezone) {
+        if (self->message->has_formatted_timestamp()) {
+            // If the formatted timestamp exists, it constructs the raw message
+            // without calling python level formatter
+            return PyUnicode_FromFormat(
+                    "%s%s",
+                    self->message->get_formatted_timestamp().c_str(),
+                    self->message->get_message().c_str());
+        } else if (reinterpret_cast<PyMetadata*>(Py_None) != self->Py_metadata) {
+            timezone = self->Py_metadata->Py_timezone;
+            cache_formatted_timestamp = true;
+        }
+    }
+
+    std::unique_ptr<PyObject, PyObjectDeleter<PyObject>> timestamp_PyString_ptr{
+            get_formatted_timestamp_as_PyString(self->message->get_timestamp(), timezone)};
+    auto timestamp_PyString{timestamp_PyString_ptr.get()};
+    if (nullptr == timestamp_PyString) {
+        return nullptr;
+    }
+    std::string formatted_timestamp;
+    if (false == parse_PyString(timestamp_PyString, formatted_timestamp)) {
+        return nullptr;
+    }
+    if (cache_formatted_timestamp) {
+        self->message->set_formatted_timestamp(formatted_timestamp);
+    }
+    return PyUnicode_FromFormat(
+            "%s%s",
+            formatted_timestamp.c_str(),
+            self->message->get_message().c_str());
+}
+
 extern "C" {
 static auto PyMessage_new(PyTypeObject* type, PyObject* args, PyObject* keywords) -> PyObject* {
     PyMessage* self{reinterpret_cast<PyMessage*>(type->tp_alloc(type, 0))};
@@ -138,41 +173,11 @@ static auto PyMessage_get_raw_message(PyMessage* self, PyObject* args, PyObject*
     static char* key_table[] = {static_cast<char*>(keyword_timezone), nullptr};
 
     PyObject* timezone{Py_None};
-    auto cache_formatted_timestamp{false};
     if (0 == PyArg_ParseTupleAndKeywords(args, keywords, "|O", key_table, &timezone)) {
         return nullptr;
     }
-    if (Py_None == timezone) {
-        if (self->message->has_formatted_timestamp()) {
-            // If the formatted timestamp exists, it constructs the raw message
-            // without calling python level formatter
-            return PyUnicode_FromFormat(
-                    "%s%s",
-                    self->message->get_formatted_timestamp().c_str(),
-                    self->message->get_message().c_str());
-        } else if (reinterpret_cast<PyMetadata*>(Py_None) != self->Py_metadata) {
-            timezone = self->Py_metadata->Py_timezone;
-            cache_formatted_timestamp = true;
-        }
-    }
 
-    std::unique_ptr<PyObject, PyObjectDeleter<PyObject>> timestamp_PyString_ptr{
-            get_formatted_timestamp_as_PyString(self->message->get_timestamp(), timezone)};
-    auto timestamp_PyString{timestamp_PyString_ptr.get()};
-    if (nullptr == timestamp_PyString) {
-        return nullptr;
-    }
-    std::string formatted_timestamp;
-    if (false == parse_PyString(timestamp_PyString, formatted_timestamp)) {
-        return nullptr;
-    }
-    if (cache_formatted_timestamp) {
-        self->message->set_formatted_timestamp(formatted_timestamp);
-    }
-    return PyUnicode_FromFormat(
-            "%s%s",
-            formatted_timestamp.c_str(),
-            self->message->get_message().c_str());
+    return get_formatted_message(self, timezone);
 }
 
 static constexpr char cStateMessage[] = "message";
@@ -276,6 +281,14 @@ static auto PyMessage___setstate__(PyMessage* self, PyObject* state) -> PyObject
 
     Py_RETURN_NONE;
 }
+
+static auto PyMessage___str__(PyMessage* self) -> PyObject* {
+    return get_formatted_message(self, Py_None);
+}
+
+static auto PyMessage___repr__(PyMessage* self) -> PyObject* {
+    return PyObject_Repr(PyMessage___getstate__(self));
+}
 }
 
 auto PyMessage_create_new(
@@ -350,6 +363,8 @@ static PyType_Slot PyMessage_slots[]{
         {Py_tp_new, reinterpret_cast<void*>(PyMessage_new)},
         {Py_tp_members, PyMessage_members},
         {Py_tp_init, reinterpret_cast<void*>(PyMessage_init)},
+        {Py_tp_str, reinterpret_cast<void*>(PyMessage___str__)},
+        {Py_tp_repr, reinterpret_cast<void*>(PyMessage___repr__)},
         {0, nullptr}};
 
 static PyType_Spec PyMessage_type_spec{
