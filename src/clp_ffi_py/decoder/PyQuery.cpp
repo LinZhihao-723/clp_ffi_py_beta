@@ -9,6 +9,52 @@
 #include <clp_ffi_py/utilities.hpp>
 
 namespace clp_ffi_py::decoder {
+static auto serialize_query_list(Query& query) -> PyObject* {
+    auto& query_list{query.get_query_list_const_ref()};
+    const auto query_list_size{query_list.size()};
+
+    auto py_query_list{PyList_New(query_list_size)};
+    if (nullptr == py_query_list) {
+        PyErr_SetString(PyExc_MemoryError, clp_ffi_py::error_messages::out_of_memory_error);
+        return nullptr;
+    }
+
+    Py_ssize_t idx{0};
+    std::vector<PyObject*> py_query_object_list;
+    for (const auto& query_wildcard : query_list) {
+        PyObject* py_str = PyUnicode_FromString(query_wildcard.c_str());
+        if (nullptr == py_str) {
+            PyErr_SetString(PyExc_MemoryError, clp_ffi_py::error_messages::out_of_memory_error);
+            for (auto object : py_query_object_list) {
+                Py_DECREF(object);
+            }
+            return nullptr;
+        }
+        py_query_object_list.push_back(py_str);
+        PyList_SET_ITEM(py_query_list, idx, py_str);
+        ++idx;
+    }
+
+    return py_query_list;
+}
+
+static auto deserialize_query_list(Query& query, PyObject* list) -> bool {
+    if (false == PyObject_TypeCheck(list, &PyList_Type)) {
+        PyErr_SetString(PyExc_TypeError, clp_ffi_py::error_messages::py_type_error);
+        return false;
+    }
+    Py_ssize_t const list_size{PyList_Size(list)};
+    for (Py_ssize_t i{0}; i < list_size; ++i) {
+        PyObject* wildcard{PyList_GetItem(list, i)};
+        std::string_view view;
+        if (false == parse_PyString_as_string_view(wildcard, view)) {
+            return false;
+        }
+        query.add_query(view);
+    }
+    return true;
+}
+
 extern "C" {
 static auto PyQuery_new(PyTypeObject* type, PyObject* args, PyObject* keywords) -> PyObject* {
     PyQuery* self{reinterpret_cast<PyQuery*>(type->tp_alloc(type, 0))};
@@ -61,32 +107,12 @@ static auto PyQuery_init(PyQuery* self, PyObject* args, PyObject* keywords) -> i
     bool const case_sensitive{(1 == py_case_sensitive) ? true : false};
 
     self->query = new Query(case_sensitive, ts_lower_bound, ts_upper_bound);
-    if (nullptr == self->query) {
-        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
-        return -1;
-    }
-
     if (Py_None == py_query_list) {
         return 0;
     }
 
-    // Note: we don't have to deallocate self->query because dealloc function
-    // will handle memory management
-    Py_ssize_t const list_size{PyList_Size(py_query_list)};
-    for (Py_ssize_t i{0}; i < list_size; ++i) {
-        PyObject* item{PyList_GetItem(py_query_list, i)};
-        if (!PyUnicode_Check(item)) {
-            PyErr_SetString(PyExc_TypeError, clp_ffi_py::error_messages::py_type_error);
-            return -1;
-        }
-
-        char const* wildcard{PyUnicode_AsUTF8(item)};
-        if (nullptr == wildcard) {
-            // PyUnicode_AsUTF8 sets the exception
-            return -1;
-        }
-
-        self->query->add_query(std::string_view(wildcard));
+    if (false == deserialize_query_list(*(self->query), py_query_list)) {
+        return -1;
     }
 
     return 0;
@@ -137,6 +163,96 @@ static auto PyQuery_set_ts_upper_bound(PyQuery* self, PyObject* args) -> PyObjec
     self->query->set_ts_upper_bound(ts_upper_bound);
     return reinterpret_cast<PyObject*>(self);
 }
+
+static constexpr char cStateQueryList[] = "query_list";
+static constexpr char cStateCaseSensitive[] = "case_sensitive";
+static constexpr char cStateTsUpperBound[] = "ts_upper_bound";
+static constexpr char cStateTsLowerBound[] = "ts_lower_bound";
+
+static auto PyQuery___getstate__(PyQuery* self) -> PyObject* {
+    assert(self->query);
+    auto query_list{serialize_query_list(*(self->query))};
+    if (nullptr == query_list) {
+        return nullptr;
+    }
+    auto value = Py_BuildValue(
+            "{sOsOsLsL}",
+            cStateQueryList,
+            query_list,
+            cStateCaseSensitive,
+            self->query->is_case_sensitive() ? Py_True : Py_False,
+            cStateTsUpperBound,
+            self->query->get_ts_upper_bound(),
+            cStateTsLowerBound,
+            self->query->get_ts_lower_bound());
+    return value;
+}
+
+static auto PyQuery___setstate__(PyQuery* self, PyObject* state) -> PyObject* {
+    if (false == PyDict_CheckExact(state)) {
+        PyErr_SetString(PyExc_ValueError, clp_ffi_py::error_messages::pickled_state_error);
+        return nullptr;
+    }
+
+    auto ts_upper_bound_obj{PyDict_GetItemString(state, cStateTsUpperBound)};
+    if (nullptr == ts_upper_bound_obj) {
+        PyErr_Format(
+                PyExc_KeyError,
+                clp_ffi_py::error_messages::pickled_key_error_template,
+                cStateTsUpperBound);
+        return nullptr;
+    }
+    ffi::epoch_time_ms_t ts_upper_bound;
+    if (false == parse_PyInt<ffi::epoch_time_ms_t>(ts_upper_bound_obj, ts_upper_bound)) {
+        return nullptr;
+    }
+
+    auto ts_lower_bound_obj{PyDict_GetItemString(state, cStateTsLowerBound)};
+    if (nullptr == ts_lower_bound_obj) {
+        PyErr_Format(
+                PyExc_KeyError,
+                clp_ffi_py::error_messages::pickled_key_error_template,
+                cStateTsLowerBound);
+        return nullptr;
+    }
+    ffi::epoch_time_ms_t ts_lower_bound;
+    if (false == parse_PyInt<ffi::epoch_time_ms_t>(ts_lower_bound_obj, ts_lower_bound)) {
+        return nullptr;
+    }
+
+    auto case_sensitive_obj{PyDict_GetItemString(state, cStateCaseSensitive)};
+    if (nullptr == case_sensitive_obj) {
+        PyErr_Format(
+                PyExc_KeyError,
+                clp_ffi_py::error_messages::pickled_key_error_template,
+                cStateCaseSensitive);
+        return nullptr;
+    }
+    int is_case_sensitive{PyObject_IsTrue(case_sensitive_obj)};
+    if (-1 == is_case_sensitive && PyErr_Occurred()) {
+        return nullptr;
+    }
+
+    self->query = new Query(is_case_sensitive ? true : false, ts_lower_bound, ts_upper_bound);
+    if (nullptr == self->query) {
+        PyErr_SetString(PyExc_MemoryError, clp_ffi_py::error_messages::out_of_memory_error);
+        return nullptr;
+    }
+
+    auto query_list{PyDict_GetItemString(state, cStateQueryList)};
+    if (nullptr == query_list) {
+        PyErr_Format(
+                PyExc_KeyError,
+                clp_ffi_py::error_messages::pickled_key_error_template,
+                cStateQueryList);
+        return nullptr;
+    }
+    if (false == deserialize_query_list(*(self->query), query_list)) {
+        return nullptr;
+    }
+
+    Py_RETURN_NONE;
+}
 }
 
 static PyMethodDef PyQuery_method_table[]{
@@ -152,6 +268,14 @@ static PyMethodDef PyQuery_method_table[]{
          reinterpret_cast<PyCFunction>(PyQuery_set_ts_upper_bound),
          METH_VARARGS,
          "Set query upper bound timestamp"},
+        {"__getstate__",
+         reinterpret_cast<PyCFunction>(PyQuery___getstate__),
+         METH_NOARGS,
+         "Pickle the Query object"},
+        {"__setstate__",
+         reinterpret_cast<PyCFunction>(PyQuery___setstate__),
+         METH_O,
+         "Un-pickle the Query object"},
         {nullptr}};
 
 static PyType_Slot PyQuery_slots[]{
@@ -162,7 +286,7 @@ static PyType_Slot PyQuery_slots[]{
         {0, nullptr}};
 
 static PyType_Spec PyQuery_type_spec{
-        "CLPIRDecoder.Query",
+        "clp_ffi_py.CLPIRDecoder.Query",
         sizeof(PyQuery),
         0,
         Py_TPFLAGS_DEFAULT,

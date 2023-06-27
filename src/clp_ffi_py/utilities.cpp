@@ -55,7 +55,7 @@ void* get_capsule(PyObject* module, char const* key) {
     return retval;
 }
 
-auto parse_PyString(PyObject* Py_string, std::string& out_string) -> bool {
+auto parse_PyString(PyObject* Py_string, std::string& out) -> bool {
     if (false == PyUnicode_Check(Py_string)) {
         PyErr_SetString(PyExc_TypeError, "parse_PyString receives none-string argument.");
         return false;
@@ -65,7 +65,21 @@ auto parse_PyString(PyObject* Py_string, std::string& out_string) -> bool {
     if (nullptr == str) {
         return false;
     }
-    out_string = std::string(str);
+    out = std::string(str);
+    return true;
+}
+
+auto parse_PyString_as_string_view(PyObject* Py_string, std::string_view& view) -> bool {
+    if (false == PyUnicode_Check(Py_string)) {
+        PyErr_SetString(PyExc_TypeError, "parse_PyString receives none-string argument.");
+        return false;
+    }
+
+    auto str{PyUnicode_AsUTF8(Py_string)};
+    if (nullptr == str) {
+        return false;
+    }
+    view = std::string_view(str);
     return true;
 }
 

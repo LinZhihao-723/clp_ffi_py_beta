@@ -30,9 +30,19 @@ public:
 
     void add_query(std::string_view wildcard) noexcept { m_query_list.emplace_back(wildcard); }
 
-    [[nodiscard]] auto matches(Message const& message) const -> bool;
+    [[nodiscard]] auto get_query_list_const_ref() const -> const std::vector<std::string>& {
+        return m_query_list;
+    }
 
-    [[nodiscard]] auto matches(std::string_view message) const -> bool;
+    [[nodiscard]] auto is_case_sensitive() const -> bool { return m_case_sensitive; }
+
+    [[nodiscard]] auto get_ts_lower_bound() const -> ffi::epoch_time_ms_t {
+        return m_ts_lower_bound;
+    }
+
+    [[nodiscard]] auto get_ts_upper_bound() const -> ffi::epoch_time_ms_t {
+        return m_ts_upper_bound;
+    }
 
     void set_ts_lower_bound(ffi::epoch_time_ms_t ts) { m_ts_lower_bound = ts; }
 
@@ -53,6 +63,10 @@ public:
     [[nodiscard]] auto ts_in_range(ffi::epoch_time_ms_t ts) const -> bool {
         return ts_lower_bound_check(ts) && ts_upper_bound_check(ts);
     }
+
+    [[nodiscard]] auto matches(Message const& message) const -> bool;
+
+    [[nodiscard]] auto matches(std::string_view message) const -> bool;
 
 private:
     std::vector<std::string> m_query_list;

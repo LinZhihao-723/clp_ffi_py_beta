@@ -26,7 +26,9 @@ void* get_capsule(PyObject* module, char const* key);
 
 void debug_message(std::string const& msg);
 
-auto parse_PyString(PyObject* Py_string, std::string& str) -> bool;
+auto parse_PyString(PyObject* Py_string, std::string& out) -> bool;
+
+auto parse_PyString_as_string_view(PyObject* Py_string, std::string_view& view) -> bool;
 
 template <typename int_type>
 auto parse_PyInt(PyObject* Py_int, int_type& val) -> bool;
