@@ -30,7 +30,7 @@ public:
 
     void add_query(std::string_view wildcard) noexcept { m_query_list.emplace_back(wildcard); }
 
-    [[nodiscard]] auto get_query_list_const_ref() const -> const std::vector<std::string>& {
+    [[nodiscard]] auto get_query_list_const_ref() const -> std::vector<std::string> const& {
         return m_query_list;
     }
 

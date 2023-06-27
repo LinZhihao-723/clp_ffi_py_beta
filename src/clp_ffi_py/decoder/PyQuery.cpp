@@ -11,7 +11,7 @@
 namespace clp_ffi_py::decoder {
 static auto serialize_query_list(Query& query) -> PyObject* {
     auto& query_list{query.get_query_list_const_ref()};
-    const auto query_list_size{query_list.size()};
+    auto const query_list_size{query_list.size()};
 
     auto py_query_list{PyList_New(query_list_size)};
     if (nullptr == py_query_list) {
@@ -21,7 +21,7 @@ static auto serialize_query_list(Query& query) -> PyObject* {
 
     Py_ssize_t idx{0};
     std::vector<PyObject*> py_query_object_list;
-    for (const auto& query_wildcard : query_list) {
+    for (auto const& query_wildcard : query_list) {
         PyObject* py_str = PyUnicode_FromString(query_wildcard.c_str());
         if (nullptr == py_str) {
             PyErr_SetString(PyExc_MemoryError, clp_ffi_py::error_messages::out_of_memory_error);
