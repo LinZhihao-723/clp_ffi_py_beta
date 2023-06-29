@@ -46,13 +46,27 @@ static auto PyMetadata_new(PyTypeObject* type, PyObject* args, PyObject* keyword
 }
 
 static auto PyMetadata_init(PyMetadata* self, PyObject* args, PyObject* keywords) -> int {
+    static char keyword_ref_timestamp[]{"ref_timestamp"};
+    static char keyword_timestamp_format[]{"timestamp_format"};
+    static char keyword_timezone_id[]{"timezone_id"};
+    static char* keyword_table[] = {
+            static_cast<char*>(keyword_ref_timestamp),
+            static_cast<char*>(keyword_timestamp_format),
+            static_cast<char*>(keyword_timezone_id),
+            nullptr};
+
     ffi::epoch_time_ms_t ref_timestamp;
     char const* input_timestamp_format;
     char const* input_timezone;
 
-    if (false ==
-        PyArg_ParseTuple(args, "Lss", &ref_timestamp, &input_timestamp_format, &input_timezone)) {
-        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::arg_parsing_error);
+    if (false == PyArg_ParseTupleAndKeywords(
+                         args,
+                         keywords,
+                         "Lss",
+                         keyword_table,
+                         &ref_timestamp,
+                         &input_timestamp_format,
+                         &input_timezone)) {
         return -1;
     }
 

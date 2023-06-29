@@ -20,7 +20,6 @@ Metadata::Metadata(nlohmann::json const& metadata, bool is_four_byte_encoding) {
     }
     m_is_four_byte_encoding = is_four_byte_encoding;
 
-    // Read ref_timestamp
     auto const ref_timestamp_key{ffi::ir_stream::cProtocol::Metadata::ReferenceTimestampKey};
     if (false == is_valid_json_string_data(metadata, ref_timestamp_key)) {
         throw ExceptionFFI(
@@ -34,11 +33,9 @@ Metadata::Metadata(nlohmann::json const& metadata, bool is_four_byte_encoding) {
         const std::string ref_timestamp_str{metadata[ref_timestamp_key]};
         m_ref_timestamp = std::stoull(ref_timestamp_str);
     } catch (std::exception const& ex) {
-        // Handle the exception triggered by stoull
         throw ExceptionFFI(ErrorCode_Unsupported, __FILE__, __LINE__, ex.what());
     }
 
-    // Read timestamp format
     auto const timestamp_format_key{ffi::ir_stream::cProtocol::Metadata::TimestampPatternKey};
     if (false == is_valid_json_string_data(metadata, timestamp_format_key)) {
         throw ExceptionFFI(
@@ -49,7 +46,6 @@ Metadata::Metadata(nlohmann::json const& metadata, bool is_four_byte_encoding) {
     }
     m_timestamp_format = metadata[timestamp_format_key];
 
-    // Read timezone
     auto const timezone_key{ffi::ir_stream::cProtocol::Metadata::TimeZoneIdKey};
     if (false == is_valid_json_string_data(metadata, timezone_key)) {
         throw ExceptionFFI(

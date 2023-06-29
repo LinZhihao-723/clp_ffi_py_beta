@@ -114,7 +114,7 @@ static auto PyMessage_init(PyMessage* self, PyObject* args, PyObject* keywords) 
         PyErr_SetString(PyExc_TypeError, clp_ffi_py::error_messages::py_type_error);
         return -1;
     }
-    self->Py_metadata = reinterpret_cast<PyMetadata*>(metadata);
+    self->set_metadata(reinterpret_cast<PyMetadata*>(metadata));
     return 0;
 }
 
@@ -359,7 +359,6 @@ static PyMethodDef PyMessage_method_table[]{
 static PyType_Slot PyMessage_slots[]{
         {Py_tp_dealloc, reinterpret_cast<void*>(PyMessage_dealloc)},
         {Py_tp_methods, PyMessage_method_table},
-        {Py_tp_init, nullptr},
         {Py_tp_new, reinterpret_cast<void*>(PyMessage_new)},
         {Py_tp_members, PyMessage_members},
         {Py_tp_init, reinterpret_cast<void*>(PyMessage_init)},
