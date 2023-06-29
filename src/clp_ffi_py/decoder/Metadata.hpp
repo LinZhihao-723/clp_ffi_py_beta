@@ -18,10 +18,14 @@ public:
           m_timestamp_format(timestamp_format),
           m_timezone_id(timezone) {}
 
-    auto is_using_four_byte_encoding() const -> bool { return m_is_four_byte_encoding; }
-    auto get_ref_timestamp() const -> ffi::epoch_time_ms_t { return m_ref_timestamp; }
-    auto get_timestamp_format() const -> std::string const& { return m_timestamp_format; }
-    auto get_timezone_id() const -> std::string const& { return m_timezone_id; }
+    [[nodiscard]] auto is_using_four_byte_encoding() const -> bool {
+        return m_is_four_byte_encoding;
+    }
+    [[nodiscard]] auto get_ref_timestamp() const -> ffi::epoch_time_ms_t { return m_ref_timestamp; }
+    [[nodiscard]] auto get_timestamp_format() const -> std::string const& {
+        return m_timestamp_format;
+    }
+    [[nodiscard]] auto get_timezone_id() const -> std::string const& { return m_timezone_id; }
 
 private:
     bool m_is_four_byte_encoding;

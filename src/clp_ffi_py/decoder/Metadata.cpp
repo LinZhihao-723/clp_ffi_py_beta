@@ -52,7 +52,7 @@ Metadata::Metadata(nlohmann::json const& metadata, bool is_four_byte_encoding) {
                 ErrorCode_MetadataCorrupted,
                 __FILE__,
                 __LINE__,
-                "TimezoneID cannot be found in the metadata.");
+                "Timezone ID cannot be found in the metadata.");
     }
     m_timezone_id = metadata[timezone_key];
 }

@@ -32,10 +32,10 @@ class TestCaseMetadata(TestCaseBase):
     ) -> None:
         """
         Given a Metadata object, check if the content matches the reference
-        @param metadata: Metadata object to be checked
-        @param expected_ref_timestamp
-        @param expected_timestamp_format
-        @param expected_timezone_id
+        :param metadata: Metadata object to be checked
+        :param expected_ref_timestamp
+        :param expected_timestamp_format
+        :param expected_timezone_id
         """
         ref_timestamp: int = metadata.get_ref_timestamp()
         timestamp_format: str = metadata.get_timestamp_format()
@@ -56,7 +56,8 @@ class TestCaseMetadata(TestCaseBase):
             f'Timezone ID: "{timezone_id}", Expected: "{expected_timezone_id}"',
         )
 
-        expected_tzinfo: tzinfo = dateutil.tz.gettz(expected_timezone_id)
+        expected_tzinfo: Optional[tzinfo] = dateutil.tz.gettz(expected_timezone_id)
+        assert expected_tzinfo is not None
         is_the_same_tz: bool = expected_tzinfo is metadata.timezone
         self.assertEqual(
             is_the_same_tz,
@@ -106,11 +107,12 @@ class TestCaseMetadata(TestCaseBase):
         self.check_metadata(metadata, ref_timestamp, timestamp_format, timezone_id)
 
         exception_captured: bool
-        wrong_tz: tzinfo
+        wrong_tz: Optional[tzinfo]
 
         exception_captured = False
         wrong_tz = dateutil.tz.gettz("America/New_York")
         try:
+            assert wrong_tz is not None
             metadata.timezone = wrong_tz
         except AttributeError:
             exception_captured = True
@@ -121,6 +123,7 @@ class TestCaseMetadata(TestCaseBase):
         exception_captured = False
         wrong_tz = metadata.timezone
         try:
+            assert wrong_tz is not None
             metadata.timezone = wrong_tz
         except AttributeError:
             exception_captured = True
@@ -128,7 +131,7 @@ class TestCaseMetadata(TestCaseBase):
 
         exception_captured = False
         try:
-            metadata.timezone = None
+            metadata.timezone = None  # type: ignore
         except AttributeError:
             exception_captured = True
         self.assertEqual(exception_captured, True, "Timezone is overwritten by None")
@@ -148,10 +151,10 @@ class TestCaseMessage(TestCaseBase):
     ) -> None:
         """
         Given a Message object, check if the content matches the reference
-        @param msg: Message object to be checked
-        @param expected_log_message
-        @param expected_timestamp
-        @param expected_msg_idx
+        :param msg: Message object to be checked
+        :param expected_log_message
+        :param expected_timestamp
+        :param expected_msg_idx
         """
         log_message: str = msg.get_message()
         timestamp: int = msg.get_timestamp()
@@ -232,7 +235,7 @@ class TestCaseMessage(TestCaseBase):
         self.check_message(msg, log_message, timestamp, msg_idx)
         expected_raw_message = f"1999-07-23 18:00:00.000+08:00{log_message}"
         raw_message = msg.get_raw_message()
-        
+
         self.assertEqual(
             raw_message,
             expected_raw_message,
@@ -241,7 +244,8 @@ class TestCaseMessage(TestCaseBase):
 
         # If metadata is given but another timestamp is specified, use the given
         # timestamp
-        test_tz: tzinfo = dateutil.tz.gettz("America/New_York")
+        test_tz: Optional[tzinfo] = dateutil.tz.gettz("America/New_York")
+        assert test_tz is not None
         expected_raw_message = f"1999-07-23 06:00:00.000-04:00{log_message}"
         raw_message = msg.get_raw_message(test_tz)
         self.assertEqual(
@@ -250,7 +254,8 @@ class TestCaseMessage(TestCaseBase):
             f"Raw message: {raw_message}; Expected: {expected_raw_message}",
         )
 
-        # If the metadata is not given, and no tzinfo passed in, use UTC
+        # If the metadata is initialized as None, and no tzinfo passed in, UTC
+        # will be used as default
         msg = Message(message=log_message, timestamp=timestamp, message_idx=msg_idx, metadata=None)
         self.check_message(msg, log_message, timestamp, msg_idx)
         expected_raw_message = f"1999-07-23 10:00:00.000+00:00{log_message}"
@@ -261,7 +266,7 @@ class TestCaseMessage(TestCaseBase):
             f"Raw message: {raw_message}; Expected: {expected_raw_message}",
         )
 
-    def test_pickle(self):
+    def test_pickle(self) -> None:
         """
         Test the reconstruction of Message object from pickling data.
         For unpickled Message object, even though the metadata is set to None,
@@ -289,6 +294,7 @@ class TestCaseMessage(TestCaseBase):
             expected_raw_message,
             f"Raw message: {raw_message}; Expected: {expected_raw_message}",
         )
+
 
 if __name__ == "__main__":
     unittest.main()
