@@ -33,18 +33,6 @@ static auto PyMetadata_clear(PyMetadata* self) {
 }
 
 extern "C" {
-static auto PyMetadata_new(PyTypeObject* type, PyObject* args, PyObject* keywords) -> PyObject* {
-    // Since tp_alloc returns <PyObject*>, we cannot use static_cast to cast it
-    // to <PyMetadata*>. A C-style casting is expected (reinterpret_cast).
-    PyMetadata* self{reinterpret_cast<PyMetadata*>(type->tp_alloc(type, 0))};
-    if (nullptr == self) {
-        PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
-        Py_RETURN_NONE;
-    }
-    PyMetadata_clear(self);
-    return reinterpret_cast<PyObject*>(self);
-}
-
 static auto PyMetadata_init(PyMetadata* self, PyObject* args, PyObject* keywords) -> int {
     static char keyword_ref_timestamp[]{"ref_timestamp"};
     static char keyword_timestamp_format[]{"timestamp_format"};
@@ -70,6 +58,7 @@ static auto PyMetadata_init(PyMetadata* self, PyObject* args, PyObject* keywords
         return -1;
     }
 
+    PyMetadata_clear(self);
     self->metadata = new Metadata(ref_timestamp, input_timestamp_format, input_timezone);
     if (nullptr == self->metadata) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::error_messages::out_of_memory_error);
@@ -168,7 +157,7 @@ static PyType_Slot PyMetadata_slots[]{
         {Py_tp_dealloc, reinterpret_cast<void*>(PyMetadata_dealloc)},
         {Py_tp_methods, PyMetadata_method_table},
         {Py_tp_init, reinterpret_cast<void*>(PyMetadata_init)},
-        {Py_tp_new, reinterpret_cast<void*>(PyMetadata_new)},
+        {Py_tp_new, reinterpret_cast<void*>(PyType_GenericNew)},
         {Py_tp_members, PyMetadata_members},
         {0, nullptr}};
 

@@ -22,6 +22,7 @@ static PyMethodDef DecoderMethods[] = {
 static struct PyModuleDef clp_ir_decoder =
         {PyModuleDef_HEAD_INIT, "CLPIRDecoder", nullptr, -1, DecoderMethods};
 
+extern "C" {
 PyMODINIT_FUNC PyInit_CLPIRDecoder() {
     // Create the module
     std::vector<PyObject*> object_list;
@@ -57,4 +58,5 @@ PyMODINIT_FUNC PyInit_CLPIRDecoder() {
     }
 
     return new_module;
+}
 }

@@ -6,14 +6,6 @@
 #include <clp_ffi_py/decoder/Message.hpp>
 
 namespace clp_ffi_py::decoder {
-void PyMessage::set_metadata(PyMetadata* metadata) {
-    if (reinterpret_cast<PyMetadata*>(Py_None) != Py_metadata) {
-        Py_DECREF(Py_metadata);
-    }
-    Py_metadata = reinterpret_cast<PyMetadata*>(metadata);
-    Py_INCREF(Py_metadata);
-}
-
 static std::unique_ptr<PyTypeObject, PyObjectDeleter<PyTypeObject>> PyMessage_type;
 static std::unique_ptr<PyObject, PyObjectDeleter<PyObject>> Py_utils_get_formatted_timestamp;
 
@@ -64,17 +56,6 @@ static auto get_formatted_message(PyMessage* self, PyObject* timezone) -> PyObje
 }
 
 extern "C" {
-static auto PyMessage_new(PyTypeObject* type, PyObject* args, PyObject* keywords) -> PyObject* {
-    PyMessage* self{reinterpret_cast<PyMessage*>(type->tp_alloc(type, 0))};
-    if (nullptr == self) {
-        PyErr_SetString(PyExc_MemoryError, clp_ffi_py::error_messages::out_of_memory_error);
-        Py_RETURN_NONE;
-    }
-    self->Py_metadata = reinterpret_cast<PyMetadata*>(Py_None);
-    self->message = nullptr;
-    return reinterpret_cast<PyObject*>(self);
-}
-
 static auto PyMessage_init(PyMessage* self, PyObject* args, PyObject* keywords) -> int {
     static char keyword_message[] = "message";
     static char keyword_timestamp[] = "timestamp";
@@ -103,6 +84,9 @@ static auto PyMessage_init(PyMessage* self, PyObject* args, PyObject* keywords) 
         return -1;
     }
 
+    self->Py_metadata = nullptr;
+    self->message = nullptr;
+
     std::string message{message_data};
     self->message = new Message(message, timestamp, message_idx);
     if (nullptr == self->message) {
@@ -121,7 +105,7 @@ static auto PyMessage_init(PyMessage* self, PyObject* args, PyObject* keywords) 
 static void PyMessage_dealloc(PyMessage* self) {
     delete self->message;
     Py_XDECREF(self->Py_metadata);
-    Py_TYPE(self)->tp_free(reinterpret_cast<PyObject*>(self));
+    PyObject_Del(self);
 }
 
 static auto PyMessage_get_message(PyMessage* self) -> PyObject* {
@@ -180,18 +164,10 @@ static auto PyMessage_get_raw_message(PyMessage* self, PyObject* args, PyObject*
     return get_formatted_message(self, timezone);
 }
 
-static constexpr char cStateMessage[] = "message";
-static constexpr char cStateFormattedTimestamp[] = "formatted_timestamp";
-static constexpr char cStateTimestamp[] = "timestamp";
-static constexpr char cStateMessageIdx[] = "message_idx";
-
 static auto PyMessage___getstate__(PyMessage* self) -> PyObject* {
     assert(self->message);
     if (false == self->message->has_formatted_timestamp()) {
-        PyObject* timezone{
-                (reinterpret_cast<PyMetadata*>(Py_None) == self->Py_metadata)
-                        ? Py_None
-                        : self->Py_metadata->Py_timezone};
+        PyObject* timezone{self->has_metadata() ? self->Py_metadata->Py_timezone : Py_None};
         std::unique_ptr<PyObject, PyObjectDeleter<PyObject>> timestamp_PyString_ptr{
                 get_formatted_timestamp_as_PyString(self->message->get_timestamp(), timezone)};
         auto timestamp_PyString{timestamp_PyString_ptr.get()};
@@ -302,7 +278,7 @@ auto PyMessage_create_new(
         return nullptr;
     }
 
-    self->Py_metadata = reinterpret_cast<PyMetadata*>(Py_None);
+    self->Py_metadata = nullptr;
     self->message = new Message(message, timestamp, message_idx);
     if (nullptr == self->message) {
         Py_DECREF(self);
@@ -326,40 +302,48 @@ static PyMethodDef PyMessage_method_table[]{
          reinterpret_cast<PyCFunction>(PyMessage_get_message),
          METH_NOARGS,
          "Get message as a string."},
+
         {"get_timestamp",
          reinterpret_cast<PyCFunction>(PyMessage_get_timestamp),
          METH_NOARGS,
          "Get timestamp as a integer."},
+
         {"get_message_idx",
          reinterpret_cast<PyCFunction>(PyMessage_get_message_idx),
          METH_NOARGS,
          "Get message index as a integer."},
+
         {"wildcard_match",
          reinterpret_cast<PyCFunction>(PyMessage_wildcard_match),
          METH_VARARGS,
          "Wildcard match (case insensitive)"},
+
         {"wildcard_match_case_sensitive",
          reinterpret_cast<PyCFunction>(PyMessage_wildcard_match_case_sensitive),
          METH_VARARGS,
          "Wildcard match (case sensitive)"},
+
         {"get_raw_message",
          reinterpret_cast<PyCFunction>(PyMessage_get_raw_message),
          METH_KEYWORDS | METH_VARARGS,
          "Get the raw message by formatting timestamp and message contents"},
+
         {"__getstate__",
          reinterpret_cast<PyCFunction>(PyMessage___getstate__),
          METH_NOARGS,
          "Pickle the Message object"},
+
         {"__setstate__",
          reinterpret_cast<PyCFunction>(PyMessage___setstate__),
          METH_O,
          "Un-pickle the Message object"},
+
         {nullptr}};
 
 static PyType_Slot PyMessage_slots[]{
         {Py_tp_dealloc, reinterpret_cast<void*>(PyMessage_dealloc)},
         {Py_tp_methods, PyMessage_method_table},
-        {Py_tp_new, reinterpret_cast<void*>(PyMessage_new)},
+        {Py_tp_new, reinterpret_cast<void*>(PyType_GenericNew)},
         {Py_tp_members, PyMessage_members},
         {Py_tp_init, reinterpret_cast<void*>(PyMessage_init)},
         {Py_tp_str, reinterpret_cast<void*>(PyMessage___str__)},

@@ -12,8 +12,20 @@ struct PyMessage {
     PyObject_HEAD;
     Message* message;
     PyMetadata* Py_metadata;
-    void set_metadata(PyMetadata* metadata);
+
+    [[nodiscard]] bool has_metadata() { return nullptr != Py_metadata; }
+
+    void set_metadata(PyMetadata* metadata) {
+        Py_XDECREF(Py_metadata);
+        Py_metadata = metadata;
+        Py_INCREF(Py_metadata);
+    }
 };
+
+constexpr char cStateMessage[] = "message";
+constexpr char cStateFormattedTimestamp[] = "formatted_timestamp";
+constexpr char cStateTimestamp[] = "timestamp";
+constexpr char cStateMessageIdx[] = "message_idx";
 
 auto PyMessage_create_new(
         std::string message,

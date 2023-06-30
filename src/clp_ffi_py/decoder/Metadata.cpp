@@ -5,11 +5,11 @@
 #include <clp_ffi_py/ErrorMessage.hpp>
 #include <clp_ffi_py/ExceptionFFI.hpp>
 
+namespace clp_ffi_py::decoder {
 static inline bool is_valid_json_string_data(nlohmann::json const& data, char const* key) {
     return data.contains(key) && data[key].is_string();
 };
 
-namespace clp_ffi_py::decoder {
 Metadata::Metadata(nlohmann::json const& metadata, bool is_four_byte_encoding) {
     if (false == is_four_byte_encoding) {
         throw ExceptionFFI(

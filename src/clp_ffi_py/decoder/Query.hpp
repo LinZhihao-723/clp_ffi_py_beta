@@ -17,16 +17,16 @@ public:
     static constexpr ffi::epoch_time_ms_t const cTimestampUpperBoundSafeRange = 60 * 1000;
 
     Query(bool case_sensitive)
-        : m_case_sensitive(case_sensitive),
-          m_ts_lower_bound(cDefaultTimestampLowerBound),
-          m_ts_upper_bound(cDefaultTimestampUpperBound){};
+        : m_case_sensitive{case_sensitive},
+          m_ts_lower_bound{cDefaultTimestampLowerBound},
+          m_ts_upper_bound{cDefaultTimestampUpperBound} {};
 
     Query(bool case_sensitive,
           ffi::epoch_time_ms_t ts_lower_bound,
           ffi::epoch_time_ms_t ts_upper_bound)
-        : m_case_sensitive(case_sensitive),
-          m_ts_lower_bound(ts_lower_bound),
-          m_ts_upper_bound(ts_upper_bound){};
+        : m_case_sensitive{case_sensitive},
+          m_ts_lower_bound{ts_lower_bound},
+          m_ts_upper_bound{ts_upper_bound} {};
 
     void add_query(std::string_view wildcard) noexcept { m_query_list.emplace_back(wildcard); }
 
