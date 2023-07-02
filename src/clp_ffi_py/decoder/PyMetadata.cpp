@@ -175,9 +175,6 @@ auto PyMetadata_module_level_init(PyObject* py_module, std::vector<PyObject*>& o
         -> bool {
     auto type{reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyMetadata_type_spec))};
     PyMetadata_type.reset(type);
-    if (nullptr != type) {
-        Py_INCREF(type);
-    }
     return add_type(
             reinterpret_cast<PyObject*>(PyMetadata_get_PyType()),
             "Metadata",

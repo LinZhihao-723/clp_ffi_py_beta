@@ -167,7 +167,6 @@ auto PyDecoderBuffer_module_level_init(PyObject* py_module, std::vector<PyObject
     PyDecoderBuffer_type.reset(type);
     if (nullptr != type) {
         type->tp_as_buffer = &PyDecoderBuffer_as_buffer;
-        Py_INCREF(type);
     }
     return add_type(
             reinterpret_cast<PyObject*>(PyDecoderBuffer_get_PyType()),

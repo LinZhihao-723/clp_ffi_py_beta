@@ -365,9 +365,6 @@ auto PyMessageTy_module_level_init(PyObject* py_module, std::vector<PyObject*>& 
         -> bool {
     auto type{reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyMessage_type_spec))};
     PyMessage_type.reset(type);
-    if (nullptr != type) {
-        Py_INCREF(type);
-    }
     return add_type(
             reinterpret_cast<PyObject*>(PyMessage_get_PyType()),
             "Message",

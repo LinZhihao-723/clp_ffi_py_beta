@@ -20,8 +20,6 @@ bool add_type(
         PyErr_SetString(PyExc_MemoryError, clp_ffi_py::error_messages::out_of_memory_error);
         return false;
     }
-    object_list.push_back(new_type);
-    Py_INCREF(new_type);
     if (PyModule_AddObject(module, type_name, new_type) < 0) {
         std::string error_message{
                 std::string(clp_ffi_py::error_messages::object_adding_error) +

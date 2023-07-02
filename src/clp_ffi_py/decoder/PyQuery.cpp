@@ -301,9 +301,6 @@ auto PyQuery_get_PyType() -> PyTypeObject* {
 auto PyQuery_module_level_init(PyObject* py_module, std::vector<PyObject*>& object_list) -> bool {
     auto type{reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyQuery_type_spec))};
     PyQuery_type.reset(type);
-    if (nullptr != type) {
-        Py_INCREF(type);
-    }
     return add_type(
             reinterpret_cast<PyObject*>(PyQuery_get_PyType()),
             "Query",
