@@ -9,16 +9,17 @@ namespace clp_ffi_py {
 static std::unique_ptr<PyObject, PyObjectDeleter<PyObject>> Py_get_formatted_timestamp;
 static std::unique_ptr<PyObject, PyObjectDeleter<PyObject>> Py_get_timezone_from_timezone_id;
 
-auto Py_utils_get_formatted_timestamp() -> PyObject* {
-    auto ret{Py_get_formatted_timestamp.get()};
-    assert(ret);
-    return ret;
+static inline auto Py_utils_function_call(PyObject* func, PyObject* args) -> PyObject* {
+    assert(func);
+    return PyObject_CallObject(func, args);
 }
 
-auto Py_utils_get_timezone_from_timezone_id() -> PyObject* {
-    auto ret{Py_get_timezone_from_timezone_id.get()};
-    assert(ret);
-    return ret;
+auto Py_utils_get_formatted_timestamp(PyObject* args) -> PyObject* {
+    return Py_utils_function_call(Py_get_formatted_timestamp.get(), args);
+}
+
+auto Py_utils_get_timezone_from_timezone_id(PyObject* args) -> PyObject* {
+    return Py_utils_function_call(Py_get_timezone_from_timezone_id.get(), args);
 }
 
 auto Py_utils_init() -> bool {

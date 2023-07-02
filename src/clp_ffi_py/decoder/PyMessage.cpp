@@ -17,7 +17,7 @@ static auto get_formatted_timestamp_as_PyString(ffi::epoch_time_ms_t ts, PyObjec
     if (nullptr == func_args) {
         return nullptr;
     }
-    return PyObject_CallObject(clp_ffi_py::Py_utils_get_formatted_timestamp(), func_args);
+    return clp_ffi_py::Py_utils_get_formatted_timestamp(func_args);
 }
 
 static auto get_formatted_message(PyMessage* self, PyObject* timezone) -> PyObject* {

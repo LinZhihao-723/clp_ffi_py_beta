@@ -19,8 +19,7 @@ static auto PyMetadata_init_timezone(PyMetadata* self) -> bool {
     if (nullptr == func_args) {
         return false;
     }
-    self->Py_timezone =
-            PyObject_CallObject(clp_ffi_py::Py_utils_get_timezone_from_timezone_id(), func_args);
+    self->Py_timezone = clp_ffi_py::Py_utils_get_timezone_from_timezone_id(func_args);
     if (nullptr == self->Py_timezone) {
         return false;
     }
