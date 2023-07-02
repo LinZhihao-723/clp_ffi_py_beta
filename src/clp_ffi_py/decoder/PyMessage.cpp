@@ -3,11 +3,11 @@
 
 #include <clp_ffi_py/ErrorMessage.hpp>
 #include <clp_ffi_py/PyObjectDeleter.hpp>
+#include <clp_ffi_py/Py_utils.hpp>
 #include <clp_ffi_py/decoder/Message.hpp>
 
 namespace clp_ffi_py::decoder {
 static std::unique_ptr<PyTypeObject, PyObjectDeleter<PyTypeObject>> PyMessage_type;
-static std::unique_ptr<PyObject, PyObjectDeleter<PyObject>> Py_utils_get_formatted_timestamp;
 
 static auto get_formatted_timestamp_as_PyString(ffi::epoch_time_ms_t ts, PyObject* timezone)
         -> PyObject* {
@@ -17,7 +17,7 @@ static auto get_formatted_timestamp_as_PyString(ffi::epoch_time_ms_t ts, PyObjec
     if (nullptr == func_args) {
         return nullptr;
     }
-    return PyObject_CallObject(Py_utils_get_formatted_timestamp.get(), func_args);
+    return PyObject_CallObject(clp_ffi_py::Py_utils_get_formatted_timestamp(), func_args);
 }
 
 static auto get_formatted_message(PyMessage* self, PyObject* timezone) -> PyObject* {
@@ -357,30 +357,12 @@ static PyType_Spec PyMessage_type_spec{
         Py_TPFLAGS_DEFAULT,
         PyMessage_slots};
 
-static auto utils_init() -> bool {
-    std::unique_ptr<PyObject, PyObjectDeleter<PyObject>> utils_module(
-            PyImport_ImportModule("clp_ffi_py.utils"));
-    auto py_utils{utils_module.get()};
-    if (nullptr == py_utils) {
-        return false;
-    }
-    Py_utils_get_formatted_timestamp.reset(
-            PyObject_GetAttrString(py_utils, "get_formatted_timestamp"));
-    if (nullptr == Py_utils_get_formatted_timestamp.get()) {
-        return false;
-    }
-    return true;
-}
-
 auto PyMessage_get_PyType() -> PyTypeObject* {
     return PyMessage_type.get();
 }
 
 auto PyMessageTy_module_level_init(PyObject* py_module, std::vector<PyObject*>& object_list)
         -> bool {
-    if (false == utils_init()) {
-        return false;
-    }
     auto type{reinterpret_cast<PyTypeObject*>(PyType_FromSpec(&PyMessage_type_spec))};
     PyMessage_type.reset(type);
     if (nullptr != type) {

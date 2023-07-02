@@ -2,6 +2,7 @@
 #include <clp_ffi_py/decoder/decoding_methods.hpp>
 
 #include <clp_ffi_py/ErrorMessage.hpp>
+#include <clp_ffi_py/Py_utils.hpp>
 #include <clp_ffi_py/decoder/PyDecoderBuffer.hpp>
 #include <clp_ffi_py/decoder/PyMessage.hpp>
 #include <clp_ffi_py/decoder/PyMetadata.hpp>
@@ -53,6 +54,11 @@ PyMODINIT_FUNC PyInit_CLPIRDecoder() {
     }
 
     if (false == clp_ffi_py::decoder::PyQuery_module_level_init(new_module, object_list)) {
+        clean_object_list(object_list);
+        return nullptr;
+    }
+
+    if (false == clp_ffi_py::Py_utils_init()) {
         clean_object_list(object_list);
         return nullptr;
     }

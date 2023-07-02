@@ -45,6 +45,7 @@ clp_ir_decoder: Extension = Extension(
         "src/clp_ffi_py/decoder/PyQuery.cpp",
         "src/clp_ffi_py/decoder/Query.cpp",
         "src/clp_ffi_py/utilities.cpp",
+        "src/clp_ffi_py/Py_utils.cpp",
     ],
     extra_compile_args=[
         '-std=c++17',
@@ -72,6 +73,7 @@ ir: Extension = Extension(
         "src/clp_ffi_py/decoder/PyQuery.cpp",
         "src/clp_ffi_py/decoder/Query.cpp",
         "src/clp_ffi_py/utilities.cpp",
+        "src/clp_ffi_py/Py_utils.cpp",
     ],
     extra_compile_args=[
         '-std=c++17',
