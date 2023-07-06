@@ -20,7 +20,7 @@ clp_four_byte_encoder: Extension = Extension(
         "-O3"
     ],
     define_macros=[
-        ("SOURCE_PATH_SIZE", str(len(os.path.abspath("./src/clp/components/core"))))
+        ("SOURCE_PATH_SIZE", 256)
     ]
 )
 
@@ -52,7 +52,7 @@ clp_ir_decoder: Extension = Extension(
         "-O3"
     ],
     define_macros=[
-        ("SOURCE_PATH_SIZE", str(len(os.path.abspath("./src/clp/components/core"))))
+        ("SOURCE_PATH_SIZE", 256)
     ]
 )
 
@@ -80,7 +80,7 @@ ir: Extension = Extension(
         "-O3"
     ],
     define_macros=[
-        ("SOURCE_PATH_SIZE", str(len(os.path.abspath("./src/clp/components/core"))))
+        ("SOURCE_PATH_SIZE", 256)
     ]
 )
 
