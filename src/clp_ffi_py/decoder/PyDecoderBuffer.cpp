@@ -137,8 +137,8 @@ static PyMethodDef PyDecoderBuffer_method_table[] = {
         {nullptr}};
 
 static PyBufferProcs PyDecoderBuffer_as_buffer{
-        .bf_getbuffer{reinterpret_cast<getbufferproc>(PyDecoderBuffer_getbuffer)},
-        .bf_releasebuffer{reinterpret_cast<releasebufferproc>(PyDecoderBuffer_releasebuffer)},
+        .bf_getbuffer = reinterpret_cast<getbufferproc>(PyDecoderBuffer_getbuffer),
+        .bf_releasebuffer = reinterpret_cast<releasebufferproc>(PyDecoderBuffer_releasebuffer),
 };
 
 static PyType_Slot PyDecoderBuffer_slots[]{
