@@ -1,0 +1,17 @@
+# Environment
+venv*/
+__pycache__
+
+# Packaging
+build/
+clp_ffi_py.egg-info
+dist/
+wheelhouse/
+*.so
+
+# Testing
+unittest-logs/
+
+# Dev
+compile_commands.json
+.mypy_cache
