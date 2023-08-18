@@ -1,14 +1,15 @@
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-from clp_ffi_py import LogEvent, Metadata, Query
-from clp_ffi_py.readers import CLPIRStreamReader
-from tests.test_decoder import (
+from test_ir.test_decoder import (
     TestCaseDecoderBase,
     TestCaseDecoderTimeRangeQueryBase,
     TestCaseDecoderTimeRangeWildcardQueryBase,
     TestCaseDecoderWildcardQueryBase,
 )
+
+from clp_ffi_py import LogEvent, Metadata, Query
+from clp_ffi_py.readers import CLPIRStreamReader
 
 
 def read_log_stream(
@@ -74,9 +75,9 @@ class TestCaseReaderDecompress(TestCaseReaderBase):
         super().setUp()
 
 
-class TestCaseReaderDecompressZst(TestCaseReaderBase):
+class TestCaseReaderDecompressZstd(TestCaseReaderBase):
     """
-    Tests stream reader against uncompressed IR stream.
+    Tests stream reader against zstd compressed IR stream.
     """
 
     # override
@@ -101,9 +102,9 @@ class TestCaseReaderTimeRangeQuery(TestCaseReaderTimeRangeQueryBase):
         super().setUp()
 
 
-class TestCaseReaderTimeRangeQueryZst(TestCaseReaderTimeRangeQueryBase):
+class TestCaseReaderTimeRangeQueryZstd(TestCaseReaderTimeRangeQueryBase):
     """
-    Tests stream reader against zst compressed IR stream with the query that
+    Tests stream reader against zstd compressed IR stream with the query that
     specifies a search timestamp.
     """
 
@@ -129,9 +130,9 @@ class TestCaseReaderWildcardQuery(TestCaseReaderWildcardQueryBase):
         super().setUp()
 
 
-class TestCaseReaderWildcardQueryZst(TestCaseReaderWildcardQueryBase):
+class TestCaseReaderWildcardQueryZstd(TestCaseReaderWildcardQueryBase):
     """
-    Tests stream reader against zst compressed IR stream with the query that
+    Tests stream reader against zstd compressed IR stream with the query that
     specifies a wildcard queries.
     """
 
@@ -157,9 +158,9 @@ class TestCaseReaderTimeRangeWildcardQuery(TestCaseReaderTimeRangeWildcardQueryB
         super().setUp()
 
 
-class TestCaseReaderTimeRangeWildcardQueryZst(TestCaseReaderTimeRangeWildcardQueryBase):
+class TestCaseReaderTimeRangeWildcardQueryZstd(TestCaseReaderTimeRangeWildcardQueryBase):
     """
-    Tests stream reader against zst compressed IR stream with the query that
+    Tests stream reader against zstd compressed IR stream with the query that
     specifies both search time range and wildcard queries.
     """
 

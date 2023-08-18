@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 from smart_open import open  # type: ignore
+from test_ir.test_utils import get_current_timestamp, LogGenerator, TestCLPBase
 
 from clp_ffi_py import (
     Decoder,
@@ -13,7 +14,6 @@ from clp_ffi_py import (
     Query,
     WildcardQuery,
 )
-from tests.test_utils import get_current_timestamp, LogGenerator, TestCLPBase
 
 LOG_DIR: Path = Path("unittest-logs")
 
@@ -28,7 +28,6 @@ class TestCaseDecoderBase(TestCLPBase):
     num_test_iterations: int
     enable_compression: bool
     has_query: bool
-    test_skip: bool
 
     # override
     @classmethod
@@ -235,7 +234,8 @@ class TestCaseDecoderDecompress(TestCaseDecoderBase):
         super().setUp()
 
 
-class TestCaseDecoderDecompressZst(TestCaseDecoderBase):
+
+class TestCaseDecoderDecompressZstd(TestCaseDecoderBase):
     """
     Tests encoding/decoding methods against zstd compressed IR stream.
     """
@@ -262,9 +262,9 @@ class TestCaseDecoderDecompressDefaultQuery(TestCaseDecoderBase):
         super().setUp()
 
 
-class TestCaseDecoderDecompressZstDefaultQuery(TestCaseDecoderBase):
+class TestCaseDecoderDecompressZstdDefaultQuery(TestCaseDecoderBase):
     """
-    Tests encoding/decoding methods against zst compressed IR stream with the
+    Tests encoding/decoding methods against zstd compressed IR stream with the
     default empty query.
     """
 
@@ -313,9 +313,9 @@ class TestCaseDecoderTimeRangeQuery(TestCaseDecoderTimeRangeQueryBase):
         super().setUp()
 
 
-class TestCaseDecoderTimeRangeQueryZst(TestCaseDecoderTimeRangeQueryBase):
+class TestCaseDecoderTimeRangeQueryZstd(TestCaseDecoderTimeRangeQueryBase):
     """
-    Tests encoding/decoding methods against zst compressed IR stream with the
+    Tests encoding/decoding methods against zstd compressed IR stream with the
     query that specifies a search timestamp.
     """
 
@@ -358,9 +358,9 @@ class TestCaseDecoderWildcardQuery(TestCaseDecoderWildcardQueryBase):
         super().setUp()
 
 
-class TestCaseDecoderWildcardQueryZst(TestCaseDecoderWildcardQueryBase):
+class TestCaseDecoderWildcardQueryZstd(TestCaseDecoderWildcardQueryBase):
     """
-    Tests encoding/decoding methods against zst compressed IR stream with the
+    Tests encoding/decoding methods against zstd compressed IR stream with the
     query that specifies a wildcard queries.
     """
 
@@ -413,9 +413,9 @@ class TestCaseDecoderTimeRangeWildcardQuery(TestCaseDecoderTimeRangeWildcardQuer
         super().setUp()
 
 
-class TestCaseDecoderTimeRangeWildcardQueryZst(TestCaseDecoderTimeRangeWildcardQueryBase):
+class TestCaseDecoderTimeRangeWildcardQueryZstd(TestCaseDecoderTimeRangeWildcardQueryBase):
     """
-    Tests encoding/decoding methods against zst compressed IR stream with the
+    Tests encoding/decoding methods against zstd compressed IR stream with the
     query that specifies both search time range and wildcard queries.
     """
 
