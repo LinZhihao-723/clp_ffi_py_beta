@@ -6,12 +6,12 @@
 #include <random>
 
 #include <clp_ffi_py/error_messages.hpp>
-#include <clp_ffi_py/ir/error_messages.hpp>
+#include <clp_ffi_py/ir/native/error_messages.hpp>
 #include <clp_ffi_py/PyObjectCast.hpp>
 #include <clp_ffi_py/PyObjectUtils.hpp>
 #include <clp_ffi_py/utils.hpp>
 
-namespace clp_ffi_py::ir {
+namespace clp_ffi_py::ir::native {
 namespace {
 extern "C" {
 /**
@@ -32,7 +32,8 @@ auto PyDecoderBuffer_init(PyDecoderBuffer* self, PyObject* args, PyObject* keywo
     static char* keyword_table[]{
             static_cast<char*>(keyword_input_stream),
             static_cast<char*>(keyword_initial_buffer_capacity),
-            nullptr};
+            nullptr
+    };
 
     // If the argument parsing fails, `self` will be deallocated. We must reset
     // all pointers to nullptr in advance, otherwise the deallocator might
@@ -54,8 +55,8 @@ auto PyDecoderBuffer_init(PyDecoderBuffer* self, PyObject* args, PyObject* keywo
         return -1;
     }
 
-    PyObjectPtr<PyObject> const readinto_method_obj{
-            PyObject_GetAttrString(input_stream, "readinto")};
+    PyObjectPtr<PyObject> const readinto_method_obj{PyObject_GetAttrString(input_stream, "readinto")
+    };
     auto* readinto_method{readinto_method_obj.get()};
     if (nullptr == readinto_method) {
         return -1;
@@ -126,9 +127,8 @@ PyDoc_STRVAR(
         "--\n\n"
         "Tests the functionality of the DecoderBuffer by streaming the entire input stream into "
         "a Python bytearray. The stepping size from the read buffer is randomly generated, "
-        "initialized by the given seed.\n"
-        "Note: this function should only be used for testing purpose.\n"
-        ":param self\n"
+        "initialized by the given seed.\n\n"
+        "Note: this function should only be used for testing purpose.\n\n"
         ":param seed_obj: Random seed.\n"
         ":return: The entire input stream stored in a Python bytearray.\n"
 );
@@ -154,7 +154,8 @@ PyMethodDef PyDecoderBuffer_method_table[]{
          METH_O,
          static_cast<char const*>(cPyDecoderBufferTestStreamingDoc)},
 
-        {nullptr}};
+        {nullptr}
+};
 
 /**
  * Declaration of Python buffer protocol.
@@ -172,10 +173,10 @@ PyDoc_STRVAR(
         "It buffers encoded CLP IR data read from the input stream, which can be consumed by the "
         "CLP IR decoding methods to recover encoded log events. An instance of this class is "
         "expected to be passed across different calls of CLP IR decoding methods when decoding "
-        "from the same IR stream.\n"
+        "from the same IR stream.\n\n"
         "The signature of `__init__` method is shown as following:\n\n"
-        "__init__(self, input_stream, initial_buffer_capacity=4096):\n"
-        "Initializes a DecoderBuffer object for the given input IR stream.\n"
+        "__init__(self, input_stream, initial_buffer_capacity=4096)\n\n"
+        "Initializes a DecoderBuffer object for the given input IR stream.\n\n"
         ":param input_stream: Input stream that contains encoded CLP IR. It should be an instance "
         "of type `IO[bytes]` with the method `readinto` supported.\n"
         ":param initial_buffer_capacity: The initial capacity of the underlying byte buffer.\n"
@@ -189,18 +190,28 @@ PyType_Slot PyDecoderBuffer_slots[]{
         {Py_tp_init, reinterpret_cast<void*>(PyDecoderBuffer_init)},
         {Py_tp_methods, static_cast<void*>(PyDecoderBuffer_method_table)},
         {Py_tp_doc, const_cast<void*>(static_cast<void const*>(cPyDecoderBufferDoc))},
-        {0, nullptr}};
+        {0, nullptr}
+};
 // NOLINTEND(cppcoreguidelines-avoid-c-arrays, cppcoreguidelines-pro-type-*-cast)
 
 /**
  * PyDecoderBuffer Python type specifications.
  */
 PyType_Spec PyDecoderBuffer_type_spec{
-        "clp_ffi_py.ir.DecoderBuffer",
+        "clp_ffi_py.ir.native.DecoderBuffer",
         sizeof(PyDecoderBuffer),
         0,
         Py_TPFLAGS_DEFAULT,
-        static_cast<PyType_Slot*>(PyDecoderBuffer_slots)};
+        static_cast<PyType_Slot*>(PyDecoderBuffer_slots)
+};
+
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays)
+PyDoc_STRVAR(
+        cPyIncompleteStreamErrorDoc,
+        "This exception will be raised if the decoder buffer cannot read more data from the "
+        "input stream while the decoding method expects more bytes.\n"
+        "Typically, this error indicates the input stream has been truncated.\n"
+);
 }  // namespace
 
 auto PyDecoderBuffer::init(PyObject* input_stream, Py_ssize_t buf_capacity) -> bool {
@@ -305,7 +316,7 @@ auto PyDecoderBuffer::try_read() -> bool {
         return false;
     }
     if (0 == num_bytes_read) {
-        PyErr_SetString(PyExc_RuntimeError, cDecoderIncompleteIRError);
+        PyErr_SetString(get_py_incomplete_stream_error(), cDecoderIncompleteIRError);
         return false;
     }
     return true;
@@ -340,13 +351,32 @@ auto PyDecoderBuffer::test_streaming(uint32_t seed) -> PyObject* {
 }
 
 PyObjectPtr<PyTypeObject> PyDecoderBuffer::m_py_type{nullptr};
+PyObjectPtr<PyObject> PyDecoderBuffer::m_py_incomplete_stream_error{nullptr};
 
 auto PyDecoderBuffer::get_py_type() -> PyTypeObject* {
     return m_py_type.get();
 }
 
+auto PyDecoderBuffer::get_py_incomplete_stream_error() -> PyObject* {
+    return m_py_incomplete_stream_error.get();
+}
+
 auto PyDecoderBuffer::module_level_init(PyObject* py_module) -> bool {
     static_assert(std::is_trivially_destructible<PyDecoderBuffer>());
+    auto* py_incomplete_stream_error{PyErr_NewExceptionWithDoc(
+            "clp_ffi_py.native.IncompleteStreamError",
+            static_cast<char const*>(cPyIncompleteStreamErrorDoc),
+            nullptr,
+            nullptr
+    )};
+    m_py_incomplete_stream_error.reset(py_incomplete_stream_error);
+    if (nullptr == py_incomplete_stream_error) {
+        return false;
+    }
+    if (0 > PyModule_AddObject(py_module, "IncompleteStreamError", py_incomplete_stream_error)) {
+        return false;
+    }
+
     auto* type{py_reinterpret_cast<PyTypeObject>(PyType_FromSpec(&PyDecoderBuffer_type_spec))};
     m_py_type.reset(type);
     if (nullptr == type) {
@@ -355,4 +385,4 @@ auto PyDecoderBuffer::module_level_init(PyObject* py_module) -> bool {
     type->tp_as_buffer = &PyDecoderBuffer_as_buffer;
     return add_python_type(get_py_type(), "DecoderBuffer", py_module);
 }
-}  // namespace clp_ffi_py::ir
+}  // namespace clp_ffi_py::ir::native

@@ -8,16 +8,16 @@
 #include <json/single_include/nlohmann/json.hpp>
 
 #include <clp_ffi_py/error_messages.hpp>
-#include <clp_ffi_py/ir/error_messages.hpp>
-#include <clp_ffi_py/ir/PyDecoderBuffer.hpp>
-#include <clp_ffi_py/ir/PyLogEvent.hpp>
-#include <clp_ffi_py/ir/PyMetadata.hpp>
-#include <clp_ffi_py/ir/PyQuery.hpp>
+#include <clp_ffi_py/ir/native/error_messages.hpp>
+#include <clp_ffi_py/ir/native/PyDecoderBuffer.hpp>
+#include <clp_ffi_py/ir/native/PyLogEvent.hpp>
+#include <clp_ffi_py/ir/native/PyMetadata.hpp>
+#include <clp_ffi_py/ir/native/PyQuery.hpp>
 #include <clp_ffi_py/PyObjectCast.hpp>
 #include <clp_ffi_py/PyObjectUtils.hpp>
 #include <clp_ffi_py/utils.hpp>
 
-namespace clp_ffi_py::ir {
+namespace clp_ffi_py::ir::native {
 namespace {
 /**
  * Decodes the next log event from the CLP IR buffer `decoder_buffer`. If
@@ -26,12 +26,19 @@ namespace {
  * @param decoder_buffer IR decoder buffer of the input IR stream.
  * @param py_metadata The metadata associated with the input IR stream.
  * @param py_query Search query to filter log events.
+ * @param allow_incomplete_stream A flag to indicate whether the incomplete
+ * stream error should be ignored. If it is set to true, incomplete stream error
+ * should be treated as the termination.
  * @return Log event represented as PyLogEvent on success.
  * @return PyNone on termination.
  * @return nullptr on failure with the relevant Python exception and error set.
  */
-auto decode(PyDecoderBuffer* decoder_buffer, PyMetadata* py_metadata, PyQuery* py_query)
-        -> PyObject* {
+auto decode(
+        PyDecoderBuffer* decoder_buffer,
+        PyMetadata* py_metadata,
+        PyQuery* py_query,
+        bool allow_incomplete_stream
+) -> PyObject* {
     std::string decoded_message;
     ffi::epoch_time_ms_t timestamp_delta{0};
     auto timestamp{decoder_buffer->get_ref_timestamp()};
@@ -47,6 +54,14 @@ auto decode(PyDecoderBuffer* decoder_buffer, PyMetadata* py_metadata, PyQuery* p
         )};
         if (ffi::ir_stream::IRErrorCode_Incomplete_IR == err) {
             if (false == decoder_buffer->try_read()) {
+                if (allow_incomplete_stream
+                    && static_cast<bool>(PyErr_ExceptionMatches(
+                            PyDecoderBuffer::get_py_incomplete_stream_error()
+                    )))
+                {
+                    PyErr_Clear();
+                    Py_RETURN_NONE;
+                }
                 return nullptr;
             }
             continue;
@@ -156,7 +171,8 @@ auto decode_preamble(PyObject* Py_UNUSED(self), PyObject* py_decoder_buffer) -> 
 
     auto const unconsumed_bytes = decoder_buffer->get_unconsumed_bytes();
     auto const metadata_buffer{
-            unconsumed_bytes.subspan(metadata_pos, static_cast<size_t>(metadata_size))};
+            unconsumed_bytes.subspan(metadata_pos, static_cast<size_t>(metadata_size))
+    };
     decoder_buffer->commit_read_buffer_consumption(static_cast<Py_ssize_t>(ir_buffer_cursor_pos));
     PyMetadata* metadata{nullptr};
     try {
@@ -180,23 +196,28 @@ auto decode_next_log_event(PyObject* Py_UNUSED(self), PyObject* args, PyObject* 
         -> PyObject* {
     static char keyword_decoder_buffer[]{"decoder_buffer"};
     static char keyword_query[]{"query"};
+    static char keyword_allow_incomplete_stream[]{"allow_incomplete_stream"};
     static char* keyword_table[]{
             static_cast<char*>(keyword_decoder_buffer),
             static_cast<char*>(keyword_query),
-            nullptr};
+            static_cast<char*>(keyword_allow_incomplete_stream),
+            nullptr
+    };
 
     PyDecoderBuffer* decoder_buffer{nullptr};
     PyObject* query{Py_None};
+    int allow_incomplete_stream{0};
 
     if (false
         == static_cast<bool>(PyArg_ParseTupleAndKeywords(
                 args,
                 keywords,
-                "O!|O",
+                "O!|Op",
                 static_cast<char**>(keyword_table),
                 PyDecoderBuffer::get_py_type(),
                 &decoder_buffer,
-                &query
+                &query,
+                &allow_incomplete_stream
         )))
     {
         return nullptr;
@@ -221,8 +242,9 @@ auto decode_next_log_event(PyObject* Py_UNUSED(self), PyObject* args, PyObject* 
     return decode(
             decoder_buffer,
             decoder_buffer->get_metadata(),
-            is_query_given ? py_reinterpret_cast<PyQuery>(query) : nullptr
+            is_query_given ? py_reinterpret_cast<PyQuery>(query) : nullptr,
+            static_cast<bool>(allow_incomplete_stream)
     );
 }
 }
-}  // namespace clp_ffi_py::ir
+}  // namespace clp_ffi_py::ir::native

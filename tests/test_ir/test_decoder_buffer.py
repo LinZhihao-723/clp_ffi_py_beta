@@ -6,7 +6,7 @@ from typing import Optional
 from smart_open import open  # type: ignore
 from test_ir.test_utils import TestCLPBase
 
-from clp_ffi_py import DecoderBuffer
+from clp_ffi_py.ir import DecoderBuffer
 
 
 class TestCaseDecoderBuffer(TestCLPBase):
@@ -14,7 +14,7 @@ class TestCaseDecoderBuffer(TestCLPBase):
     Class for testing clp_ffi_py.ir.DecoderBuffer.
     """
 
-    input_src_dir = "test_data"
+    input_src_dir: str = "test_data"
 
     def test_buffer_protocol(self) -> None:
         """
