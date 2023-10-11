@@ -12,49 +12,48 @@
 namespace clp_ffi_py::ir::native {
 namespace {
 /**
- * Serializes the attributes as a C++ vector into the Python list.
+ * Serializes the attributes from a C++ attribute table into the Python dict.
  * @param attributes
- * @return Python list with the serialized attributes on success.
+ * @return Python dict with the serialized [name, value] attribute pairs on
+ * success.
  * @return nullptr on failure with the relevant Python exception and error set.
  */
-auto serialize_attributes_to_python_list(
-        std::vector<std::optional<ffi::ir_stream::Attribute>> const& attributes
-) -> PyObject* {
-    auto* py_attributes{PyList_New(attributes.size())};
+auto serialize_attributes_to_python_dict(LogEvent::attribute_table_t const& attributes)
+        -> PyObject* {
+    auto* py_attributes{PyDict_New()};
     if (nullptr == py_attributes) {
         return nullptr;
     }
-    Py_ssize_t idx{0};
     bool failed{false};
-    for (auto const& attribute : attributes) {
-        auto const curr_idx{idx};
-        ++idx;
+    for (auto const& [attr_name, attribute] : attributes) {
+        PyObjectPtr<PyObject> const attr_name_py{PyUnicode_FromString(attr_name.c_str())};
+        if (nullptr == attr_name_py.get()) {
+            failed = true;
+            break;
+        }
         if (false == attribute.has_value()) {
-            Py_INCREF(Py_None);
-            PyList_SET_ITEM(py_attributes, curr_idx, Py_None);
+            PyDict_SetItem(py_attributes, attr_name_py.get(), Py_None);
             continue;
         }
         auto const& attr_val{attribute.value()};
+        PyObjectPtr<PyObject> attr_py{nullptr};
         if (attr_val.is_type<ffi::ir_stream::attr_int_t>()) {
-            PyObject* attr_int_py{
-                    PyLong_FromLongLong(attr_val.get_value<ffi::ir_stream::attr_int_t>())
+            auto* attr_int_py{PyLong_FromLongLong(attr_val.get_value<ffi::ir_stream::attr_int_t>())
             };
-            if (nullptr == attr_int_py) {
-                failed = true;
-                break;
-            }
-            PyList_SET_ITEM(py_attributes, curr_idx, attr_int_py);
+            attr_py.reset(attr_int_py);
         } else if (attr_val.is_type<ffi::ir_stream::attr_str_t>()) {
             std::string_view attr_str{attr_val.get_value<ffi::ir_stream::attr_str_t>()};
-            PyObject* attr_str_py{PyUnicode_FromString(attr_str.data())};
-            if (nullptr == attr_str_py) {
-                failed = true;
-                break;
-            }
-            PyList_SET_ITEM(py_attributes, curr_idx, attr_str_py);
+            auto* attr_str_py{PyUnicode_FromString(attr_str.data())};
+            attr_py.reset(attr_str_py);
         } else {
-            failed = true;
             PyErr_SetString(PyExc_NotImplementedError, "Unsupported attribute type");
+        }
+        if (nullptr == attr_py.get()) {
+            failed = true;
+            break;
+        }
+        if (-1 == PyDict_SetItem(py_attributes, attr_name_py.get(), attr_py.get())) {
+            failed = true;
             break;
         }
     }
@@ -66,35 +65,47 @@ auto serialize_attributes_to_python_list(
 }
 
 /**
- * Deserializes the attributes from the Python list.
- * @param py_list
+ * Deserializes the attributes from the Python dict.
+ * @param py_attr_dict
  * @param attributes
  * @return true on success.
  * @return false on failure with the relevant Python exception and error set.
  */
-auto deserialize_attributes_from_python_list(
-        PyObject* py_list,
-        std::vector<std::optional<ffi::ir_stream::Attribute>>& attributes
+auto deserialize_attributes_from_python_dict(
+        PyObject* py_attr_dict,
+        LogEvent::attribute_table_t& attributes
 ) -> bool {
-    if (false == static_cast<bool>(PyObject_TypeCheck(py_list, &PyList_Type))) {
+    if (false == static_cast<bool>(PyDict_CheckExact(py_attr_dict))) {
         PyErr_SetString(PyExc_TypeError, clp_ffi_py::cPyTypeError);
         return false;
     }
-
-    auto const num_attributes{PyList_Size(py_list)};
+    PyObject* py_attr_name{};
+    PyObject* py_attr{};
+    Py_ssize_t pos{0};
     ffi::ir_stream::attr_str_t attr_str;
     ffi::ir_stream::attr_int_t attr_int;
-    attributes.clear();
-    for (Py_ssize_t idx{0}; idx < num_attributes; ++idx) {
-        auto* py_attr{PyList_GetItem(py_list, idx)};
+
+    bool success{true};
+    std::string_view attr_name_view;
+    while (static_cast<bool>(PyDict_Next(py_attr_dict, &pos, &py_attr_name, &py_attr))) {
+        if (false == parse_py_string_as_string_view(py_attr_name, attr_name_view)) {
+            PyErr_SetString(PyExc_TypeError, "String keys are expected in attribute table.");
+            return false;
+        }
         if (Py_IsNone(py_attr)) {
-            attributes.emplace_back(std::nullopt);
+            attributes.emplace(attr_name_view, std::nullopt);
             continue;
         }
-        if (parse_py_string(py_attr, attr_str)) {
-            attributes.emplace_back(attr_str);
-        } else if (parse_py_int(py_attr, attr_int)) {
-            attributes.emplace_back(attr_int);
+        if (static_cast<bool>(PyUnicode_Check(py_attr))) {
+            if (false == parse_py_string(py_attr, attr_str)) {
+                return false;
+            }
+            attributes.emplace(attr_name_view, attr_str);
+        } else if (static_cast<bool>(PyLong_Check(py_attr))) {
+            if (false == parse_py_int<ffi::ir_stream::attr_int_t>(py_attr, attr_int)) {
+                return false;
+            }
+            attributes.emplace(attr_name_view, attr_int);
         } else {
             PyErr_SetString(PyExc_TypeError, "Unknown serialized log attribute type.");
             return false;
@@ -230,13 +241,13 @@ auto PyLogEvent_getstate(PyLogEvent* self) -> PyObject* {
     }
 
     auto const& attributes{self->get_log_event()->get_attributes()};
-    auto* py_attributes{serialize_attributes_to_python_list(attributes)};
+    auto* py_attributes{serialize_attributes_to_python_dict(attributes)};
     if (nullptr == py_attributes) {
         return nullptr;
     }
 
     return Py_BuildValue(
-            "{sssssLsK}",
+            "{sssssLsKsO}",
             cStateLogMessage,
             log_event->get_log_message().c_str(),
             static_cast<char const*>(cStateFormattedTimestamp),
@@ -326,10 +337,10 @@ auto PyLogEvent_setstate(PyLogEvent* self, PyObject* state) -> PyObject* {
         return nullptr;
     }
 
-    std::vector<std::optional<ffi::ir_stream::Attribute>> attributes;
+    LogEvent::attribute_table_t attributes;
     auto* attributes_obj{PyDict_GetItemString(state, cStateAttributes)};
     if (nullptr != attributes_obj
-        && false == deserialize_attributes_from_python_list(attributes_obj, attributes))
+        && false == deserialize_attributes_from_python_dict(attributes_obj, attributes))
     {
         return nullptr;
     }
@@ -460,11 +471,12 @@ PyDoc_STRVAR(
         cPyLogEventGetAttributes,
         "get_attributes()\n"
         "--\n\n"
-        ":return: The attributes associated with the log returned as a newly created Python list.\n"
+        ":return: The attributes associated with the log returned as a newly created Python "
+        "dictionary. Each attribute is stored as a key value pair.\n"
 );
 
 auto PyLogEvent_get_attributes(PyLogEvent* self) -> PyObject* {
-    return serialize_attributes_to_python_list(self->get_log_event()->get_attributes());
+    return serialize_attributes_to_python_dict(self->get_log_event()->get_attributes());
 }
 }
 
@@ -603,7 +615,7 @@ auto PyLogEvent::init(
         ffi::epoch_time_ms_t timestamp,
         size_t index,
         PyMetadata* metadata,
-        std::vector<std::optional<ffi::ir_stream::Attribute>> const& attributes,
+        LogEvent::attribute_table_t const& attributes,
         std::optional<std::string_view> formatted_timestamp
 ) -> bool {
     // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
@@ -637,7 +649,7 @@ auto PyLogEvent::create_new_log_event(
         ffi::epoch_time_ms_t timestamp,
         size_t index,
         PyMetadata* metadata,
-        std::vector<std::optional<ffi::ir_stream::Attribute>> const& attributes
+        LogEvent::attribute_table_t const& attributes
 ) -> PyLogEvent* {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
     PyLogEvent* self{PyObject_New(PyLogEvent, get_py_type())};

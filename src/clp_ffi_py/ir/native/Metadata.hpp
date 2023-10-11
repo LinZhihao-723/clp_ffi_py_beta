@@ -60,6 +60,13 @@ public:
 
     [[nodiscard]] auto get_num_attributes() const -> size_t { return m_attribute_table.size(); }
 
+    [[nodiscard]] auto get_attribute_table() const
+            -> std::vector<ffi::ir_stream::AttributeInfo> const& {
+        return m_attribute_table;
+    }
+
+    [[nodiscard]] auto get_attribute_idx(std::string const& attr_name) const -> size_t;
+
 private:
     bool m_is_four_byte_encoding;
     ffi::epoch_time_ms_t m_ref_timestamp;

@@ -107,4 +107,19 @@ Metadata::Metadata(nlohmann::json const& metadata, bool is_four_byte_encoding) {
         );
     }
 }
+
+auto Metadata::get_attribute_idx(std::string const& attr_name) const -> size_t {
+    size_t idx{};
+    try {
+        idx = m_attribute_idx_table.at(attr_name);
+    } catch (std::exception const& e) {
+        throw ExceptionFFI(
+                ErrorCode_MetadataCorrupted,
+                __FILE__,
+                __LINE__,
+                "Invalid attribute name: " + attr_name
+        );
+    }
+    return idx;
+}
 }  // namespace clp_ffi_py::ir::native

@@ -43,7 +43,7 @@ public:
             ffi::epoch_time_ms_t timestamp,
             size_t index,
             PyMetadata* metadata,
-            std::vector<std::optional<ffi::ir_stream::Attribute>> const& attributes,
+            LogEvent::attribute_table_t const& attributes,
             std::optional<std::string_view> formatted_timestamp = std::nullopt
     ) -> bool;
 
@@ -140,7 +140,7 @@ public:
             ffi::epoch_time_ms_t timestamp,
             size_t index,
             PyMetadata* metadata,
-            std::vector<std::optional<ffi::ir_stream::Attribute>> const& attributes
+            LogEvent::attribute_table_t const& attributes
     ) -> PyLogEvent*;
 
 private:

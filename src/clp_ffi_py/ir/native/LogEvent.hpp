@@ -2,6 +2,7 @@
 #define CLP_FFI_PY_LOG_EVENT_HPP
 
 #include <optional>
+#include <unordered_map>
 #include <vector>
 
 #include <clp/components/core/src/ffi/encoding_methods.hpp>
@@ -14,6 +15,9 @@ namespace clp_ffi_py::ir::native {
  */
 class LogEvent {
 public:
+    using attribute_table_t
+            = std::unordered_map<std::string, std::optional<ffi::ir_stream::Attribute>>;
+
     LogEvent() = delete;
 
     /**
@@ -28,7 +32,7 @@ public:
             std::string_view log_message,
             ffi::epoch_time_ms_t timestamp,
             size_t index,
-            std::vector<std::optional<ffi::ir_stream::Attribute>> attributes,
+            attribute_table_t attributes,
             std::optional<std::string_view> formatted_timestamp = std::nullopt
     )
             : m_log_message{log_message},
@@ -54,10 +58,7 @@ public:
 
     [[nodiscard]] auto get_index() const -> size_t { return m_index; }
 
-    [[nodiscard]] auto get_attributes() const
-            -> std::vector<std::optional<ffi::ir_stream::Attribute>> const& {
-        return m_attributes;
-    }
+    [[nodiscard]] auto get_attributes() const -> attribute_table_t const& { return m_attributes; }
 
     /**
      * @return Whether the log event has the formatted timestamp buffered.
@@ -81,7 +82,7 @@ private:
     ffi::epoch_time_ms_t m_timestamp;
     size_t m_index;
     std::string m_formatted_timestamp;
-    std::vector<std::optional<ffi::ir_stream::Attribute>> m_attributes;
+    attribute_table_t m_attributes;
 };
 }  // namespace clp_ffi_py::ir::native
 

@@ -45,6 +45,7 @@ auto decode(
     ffi::epoch_time_ms_t timestamp_delta{0};
     auto timestamp{decoder_buffer->get_ref_timestamp()};
     auto const num_attributes{py_metadata->get_metadata()->get_num_attributes()};
+    auto const& attribute_info_table{py_metadata->get_metadata()->get_attribute_table()};
     std::vector<std::optional<ffi::ir_stream::Attribute>> decoded_attributes;
     size_t current_log_event_idx{0};
     bool reached_eof{false};
@@ -84,6 +85,14 @@ auto decode(
             return nullptr;
         }
 
+        if (false == ffi::ir_stream::validate_attributes(attribute_info_table, decoded_attributes))
+        {
+            PyErr_SetString(
+                    PyExc_RuntimeError,
+                    "The decoded attributes do not match the declared ones in the metadata"
+            );
+            return nullptr;
+        }
         timestamp += timestamp_delta;
         current_log_event_idx = decoder_buffer->get_and_increment_decoded_message_count();
         auto const curr_pos{ir_buffer.get_pos()};
@@ -109,12 +118,16 @@ auto decode(
     }
 
     decoder_buffer->set_ref_timestamp(timestamp);
+    LogEvent::attribute_table_t attributes;
+    for (size_t i{0}; i < attribute_info_table.size(); ++i) {
+        attributes.emplace(attribute_info_table[i].get_name(), decoded_attributes[i]);
+    }
     return py_reinterpret_cast<PyObject>(PyLogEvent::create_new_log_event(
             decoded_message,
             timestamp,
             current_log_event_idx,
             py_metadata,
-            decoded_attributes
+            attributes
     ));
 }
 }  // namespace
