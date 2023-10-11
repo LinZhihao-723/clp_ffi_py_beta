@@ -1,3 +1,6 @@
 [submodule "src/GSL"]
 	path = src/GSL
 	url = https://github.com/microsoft/GSL.git
+[submodule "src/clp"]
+	path = src/clp
+	url = https://github.com/LinZhihao-723/clp_private.git

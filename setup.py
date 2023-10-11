@@ -14,11 +14,16 @@ ir_native: Extension = Extension(
         "src/clp/components/core/submodules",
     ],
     sources=[
+        "src/clp/components/core/src/ffi/ir_stream/attributes.cpp",
         "src/clp/components/core/src/ffi/ir_stream/decoding_methods.cpp",
         "src/clp/components/core/src/ffi/ir_stream/encoding_methods.cpp",
         "src/clp/components/core/src/ffi/encoding_methods.cpp",
+        "src/clp/components/core/src/ir/parsing.cpp",
         "src/clp/components/core/src/string_utils.cpp",
         "src/clp/components/core/src/TraceableException.cpp",
+        "src/clp/components/core/src/BufferReader.cpp",
+        "src/clp/components/core/src/ReaderInterface.cpp",
+
         "src/clp_ffi_py/ir/native/decoding_methods.cpp",
         "src/clp_ffi_py/ir/native/encoding_methods.cpp",
         "src/clp_ffi_py/ir/native/Metadata.cpp",
