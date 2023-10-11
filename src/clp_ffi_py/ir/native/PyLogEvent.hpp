@@ -30,6 +30,7 @@ public:
      * @param index
      * @param metadata A PyMetadata instance to bind with the log event (can be
      * nullptr).
+     * @param attributes Attributes associated with the log event.
      * @param formatted_timestamp Formatted timestamp. This argument is not
      * given by default. It should be given when deserializing the object from
      * a saved state.
@@ -42,6 +43,7 @@ public:
             ffi::epoch_time_ms_t timestamp,
             size_t index,
             PyMetadata* metadata,
+            std::vector<std::optional<ffi::ir_stream::Attribute>> const& attributes,
             std::optional<std::string_view> formatted_timestamp = std::nullopt
     ) -> bool;
 
@@ -127,6 +129,7 @@ public:
      * @param index
      * @param metadata A PyMetadata instance to bind with the log event (can be
      * nullptr).
+     * @param attributes Attributes associated with the log event.
      * @return a new reference of a PyLogEvent object that is initialized with
      * the given inputs.
      * @return nullptr on failure with the relevant Python exception and error
@@ -136,7 +139,8 @@ public:
             std::string const& log_message,
             ffi::epoch_time_ms_t timestamp,
             size_t index,
-            PyMetadata* metadata
+            PyMetadata* metadata,
+            std::vector<std::optional<ffi::ir_stream::Attribute>> const& attributes
     ) -> PyLogEvent*;
 
 private:

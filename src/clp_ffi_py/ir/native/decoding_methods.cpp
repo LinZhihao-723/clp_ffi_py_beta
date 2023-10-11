@@ -3,6 +3,7 @@
 #include "decoding_methods.hpp"
 
 #include <clp/components/core/src/BufferReader.hpp>
+#include <clp/components/core/src/ffi/ir_stream/attributes.hpp>
 #include <clp/components/core/src/ffi/ir_stream/decoding_methods.hpp>
 #include <clp/components/core/src/type_utils.hpp>
 #include <gsl/span>
@@ -43,6 +44,8 @@ auto decode(
     std::string decoded_message;
     ffi::epoch_time_ms_t timestamp_delta{0};
     auto timestamp{decoder_buffer->get_ref_timestamp()};
+    auto const num_attributes{py_metadata->get_metadata()->get_num_attributes()};
+    std::vector<std::optional<ffi::ir_stream::Attribute>> decoded_attributes;
     size_t current_log_event_idx{0};
     bool reached_eof{false};
     while (true) {
@@ -51,10 +54,12 @@ auto decode(
                 size_checked_pointer_cast<char const>(unconsumed_bytes.data()),
                 unconsumed_bytes.size()
         };
-        auto const err{ffi::ir_stream::four_byte_encoding::decode_next_message(
+        auto const err{ffi::ir_stream::four_byte_encoding::decode_next_message_with_attributes(
                 ir_buffer,
                 decoded_message,
-                timestamp_delta
+                timestamp_delta,
+                decoded_attributes,
+                num_attributes
         )};
         if (ffi::ir_stream::IRErrorCode_Incomplete_IR == err) {
             if (false == decoder_buffer->try_read()) {
@@ -81,8 +86,8 @@ auto decode(
 
         timestamp += timestamp_delta;
         current_log_event_idx = decoder_buffer->get_and_increment_decoded_message_count();
-        decoder_buffer->commit_read_buffer_consumption(static_cast<Py_ssize_t>(ir_buffer.get_pos())
-        );
+        auto const curr_pos{ir_buffer.get_pos()};
+        decoder_buffer->commit_read_buffer_consumption(curr_pos);
 
         if (nullptr == py_query) {
             break;
@@ -108,7 +113,8 @@ auto decode(
             decoded_message,
             timestamp,
             current_log_event_idx,
-            py_metadata
+            py_metadata,
+            decoded_attributes
     ));
 }
 }  // namespace

@@ -1,9 +1,12 @@
 #ifndef CLP_FFI_PY_METADATA_HPP
 #define CLP_FFI_PY_METADATA_HPP
 
+#include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include <clp/components/core/src/ffi/encoding_methods.hpp>
+#include <clp/components/core/src/ffi/ir_stream/attributes.hpp>
 #include <clp/components/core/submodules/json/single_include/nlohmann/json.hpp>
 
 namespace clp_ffi_py::ir::native {
@@ -55,11 +58,16 @@ public:
 
     [[nodiscard]] auto get_timezone_id() const -> std::string const& { return m_timezone_id; }
 
+    [[nodiscard]] auto get_num_attributes() const -> size_t { return m_attribute_table.size(); }
+
 private:
     bool m_is_four_byte_encoding;
     ffi::epoch_time_ms_t m_ref_timestamp;
     std::string m_timestamp_format;
     std::string m_timezone_id;
+    std::vector<ffi::ir_stream::AttributeInfo> m_attribute_table;
+    std::unordered_map<std::string, size_t> m_attribute_idx_table;
+    std::optional<std::string> m_android_build_version;
 };
 }  // namespace clp_ffi_py::ir::native
 #endif  // CLP_FFI_PY_METADATA_HPP

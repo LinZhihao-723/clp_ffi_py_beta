@@ -11,6 +11,98 @@
 
 namespace clp_ffi_py::ir::native {
 namespace {
+/**
+ * Serializes the attributes as a C++ vector into the Python list.
+ * @param attributes
+ * @return Python list with the serialized attributes on success.
+ * @return nullptr on failure with the relevant Python exception and error set.
+ */
+auto serialize_attributes_to_python_list(
+        std::vector<std::optional<ffi::ir_stream::Attribute>> const& attributes
+) -> PyObject* {
+    auto* py_attributes{PyList_New(attributes.size())};
+    if (nullptr == py_attributes) {
+        return nullptr;
+    }
+    Py_ssize_t idx{0};
+    bool failed{false};
+    for (auto const& attribute : attributes) {
+        auto const curr_idx{idx};
+        ++idx;
+        if (false == attribute.has_value()) {
+            Py_INCREF(Py_None);
+            PyList_SET_ITEM(py_attributes, curr_idx, Py_None);
+            continue;
+        }
+        auto const& attr_val{attribute.value()};
+        if (attr_val.is_type<ffi::ir_stream::attr_int_t>()) {
+            PyObject* attr_int_py{
+                    PyLong_FromLongLong(attr_val.get_value<ffi::ir_stream::attr_int_t>())
+            };
+            if (nullptr == attr_int_py) {
+                failed = true;
+                break;
+            }
+            PyList_SET_ITEM(py_attributes, curr_idx, attr_int_py);
+        } else if (attr_val.is_type<ffi::ir_stream::attr_str_t>()) {
+            std::string_view attr_str{attr_val.get_value<ffi::ir_stream::attr_str_t>()};
+            PyObject* attr_str_py{PyUnicode_FromString(attr_str.data())};
+            if (nullptr == attr_str_py) {
+                failed = true;
+                break;
+            }
+            PyList_SET_ITEM(py_attributes, curr_idx, attr_str_py);
+        } else {
+            failed = true;
+            PyErr_SetString(PyExc_NotImplementedError, "Unsupported attribute type");
+            break;
+        }
+    }
+    if (failed) {
+        Py_DECREF(py_attributes);
+        return nullptr;
+    }
+    return py_attributes;
+}
+
+/**
+ * Deserializes the attributes from the Python list.
+ * @param py_list
+ * @param attributes
+ * @return true on success.
+ * @return false on failure with the relevant Python exception and error set.
+ */
+auto deserialize_attributes_from_python_list(
+        PyObject* py_list,
+        std::vector<std::optional<ffi::ir_stream::Attribute>>& attributes
+) -> bool {
+    if (false == static_cast<bool>(PyObject_TypeCheck(py_list, &PyList_Type))) {
+        PyErr_SetString(PyExc_TypeError, clp_ffi_py::cPyTypeError);
+        return false;
+    }
+
+    auto const num_attributes{PyList_Size(py_list)};
+    ffi::ir_stream::attr_str_t attr_str;
+    ffi::ir_stream::attr_int_t attr_int;
+    attributes.clear();
+    for (Py_ssize_t idx{0}; idx < num_attributes; ++idx) {
+        auto* py_attr{PyList_GetItem(py_list, idx)};
+        if (Py_IsNone(py_attr)) {
+            attributes.emplace_back(std::nullopt);
+            continue;
+        }
+        if (parse_py_string(py_attr, attr_str)) {
+            attributes.emplace_back(attr_str);
+        } else if (parse_py_int(py_attr, attr_int)) {
+            attributes.emplace_back(attr_int);
+        } else {
+            PyErr_SetString(PyExc_TypeError, "Unknown serialized log attribute type.");
+            return false;
+        }
+    }
+    return true;
+}
+
 extern "C" {
 /**
  * Callback of PyLogEvent `__init__` method:
@@ -74,7 +166,8 @@ auto PyLogEvent_init(PyLogEvent* self, PyObject* args, PyObject* keywords) -> in
                 log_message,
                 timestamp,
                 index,
-                has_metadata ? py_reinterpret_cast<PyMetadata>(metadata) : nullptr
+                has_metadata ? py_reinterpret_cast<PyMetadata>(metadata) : nullptr,
+                {}
         ))
     {
         return -1;
@@ -99,6 +192,7 @@ constexpr char const* const cStateLogMessage = "log_message";
 constexpr char const* const cStateTimestamp = "timestamp";
 constexpr char const* const cStateFormattedTimestamp = "formatted_timestamp";
 constexpr char const* const cStateIndex = "index";
+constexpr char const* const cStateAttributes = "attributes";
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays)
 PyDoc_STRVAR(
@@ -135,6 +229,12 @@ auto PyLogEvent_getstate(PyLogEvent* self) -> PyObject* {
         log_event->set_formatted_timestamp(formatted_timestamp);
     }
 
+    auto const& attributes{self->get_log_event()->get_attributes()};
+    auto* py_attributes{serialize_attributes_to_python_list(attributes)};
+    if (nullptr == py_attributes) {
+        return nullptr;
+    }
+
     return Py_BuildValue(
             "{sssssLsK}",
             cStateLogMessage,
@@ -144,7 +244,9 @@ auto PyLogEvent_getstate(PyLogEvent* self) -> PyObject* {
             static_cast<char const*>(cStateTimestamp),
             log_event->get_timestamp(),
             cStateIndex,
-            log_event->get_index()
+            log_event->get_index(),
+            cStateAttributes,
+            py_attributes
     );
 }
 
@@ -224,7 +326,17 @@ auto PyLogEvent_setstate(PyLogEvent* self, PyObject* state) -> PyObject* {
         return nullptr;
     }
 
-    if (false == self->init(log_message, timestamp, index, nullptr, formatted_timestamp)) {
+    std::vector<std::optional<ffi::ir_stream::Attribute>> attributes;
+    auto* attributes_obj{PyDict_GetItemString(state, cStateAttributes)};
+    if (nullptr != attributes_obj
+        && false == deserialize_attributes_from_python_list(attributes_obj, attributes))
+    {
+        return nullptr;
+    }
+
+    if (false
+        == self->init(log_message, timestamp, index, nullptr, attributes, formatted_timestamp))
+    {
         return nullptr;
     }
 
@@ -342,6 +454,18 @@ auto PyLogEvent_get_formatted_message(PyLogEvent* self, PyObject* args, PyObject
 
     return self->get_formatted_message(timezone);
 }
+
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays)
+PyDoc_STRVAR(
+        cPyLogEventGetAttributes,
+        "get_attributes()\n"
+        "--\n\n"
+        ":return: The attributes associated with the log returned as a newly created Python list.\n"
+);
+
+auto PyLogEvent_get_attributes(PyLogEvent* self) -> PyObject* {
+    return serialize_attributes_to_python_list(self->get_log_event()->get_attributes());
+}
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays)
@@ -360,6 +484,11 @@ PyMethodDef PyLogEvent_method_table[]{
          py_c_function_cast(PyLogEvent_get_index),
          METH_NOARGS,
          static_cast<char const*>(cPyLogEventGetIndexDoc)},
+
+        {"get_attributes",
+         py_c_function_cast(PyLogEvent_get_attributes),
+         METH_NOARGS,
+         static_cast<char const*>(cPyLogEventGetAttributes)},
 
         {"get_formatted_message",
          py_c_function_cast(PyLogEvent_get_formatted_message),
@@ -474,10 +603,11 @@ auto PyLogEvent::init(
         ffi::epoch_time_ms_t timestamp,
         size_t index,
         PyMetadata* metadata,
+        std::vector<std::optional<ffi::ir_stream::Attribute>> const& attributes,
         std::optional<std::string_view> formatted_timestamp
 ) -> bool {
     // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-    m_log_event = new LogEvent(log_message, timestamp, index, formatted_timestamp);
+    m_log_event = new LogEvent(log_message, timestamp, index, attributes, formatted_timestamp);
     if (nullptr == m_log_event) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::cOutofMemoryError);
         return false;
@@ -506,7 +636,8 @@ auto PyLogEvent::create_new_log_event(
         std::string const& log_message,
         ffi::epoch_time_ms_t timestamp,
         size_t index,
-        PyMetadata* metadata
+        PyMetadata* metadata,
+        std::vector<std::optional<ffi::ir_stream::Attribute>> const& attributes
 ) -> PyLogEvent* {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
     PyLogEvent* self{PyObject_New(PyLogEvent, get_py_type())};
@@ -515,7 +646,7 @@ auto PyLogEvent::create_new_log_event(
         return nullptr;
     }
     self->default_init();
-    if (false == self->init(log_message, timestamp, index, metadata)) {
+    if (false == self->init(log_message, timestamp, index, metadata, attributes)) {
         return nullptr;
     }
     return self;
