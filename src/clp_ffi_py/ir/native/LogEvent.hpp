@@ -60,6 +60,8 @@ public:
 
     [[nodiscard]] auto get_attributes() const -> attribute_table_t const& { return m_attributes; }
 
+    [[nodiscard]] auto has_attributes() const -> bool { return false == m_attributes.empty(); }
+
     /**
      * @return Whether the log event has the formatted timestamp buffered.
      */

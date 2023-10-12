@@ -96,7 +96,7 @@ Metadata::Metadata(nlohmann::json const& metadata, bool is_four_byte_encoding) {
                     name,
                     attribute_json.at(ffi::ir_stream::AttributeInfo::cTypeTagKey)
             );
-            m_attribute_idx_table.emplace(name, m_attribute_idx_table.size());
+            m_attribute_idx_map.emplace(name, m_attribute_idx_map.size());
         }
     } catch (std::exception const& e) {
         throw ExceptionFFI(
@@ -111,7 +111,7 @@ Metadata::Metadata(nlohmann::json const& metadata, bool is_four_byte_encoding) {
 auto Metadata::get_attribute_idx(std::string const& attr_name) const -> size_t {
     size_t idx{};
     try {
-        idx = m_attribute_idx_table.at(attr_name);
+        idx = m_attribute_idx_map.at(attr_name);
     } catch (std::exception const& e) {
         throw ExceptionFFI(
                 ErrorCode_MetadataCorrupted,

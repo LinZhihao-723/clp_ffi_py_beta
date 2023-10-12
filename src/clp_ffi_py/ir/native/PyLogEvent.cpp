@@ -2,9 +2,13 @@
 
 #include "PyLogEvent.hpp"
 
+#include <iomanip>
+#include <sstream>
+
 #include <clp_ffi_py/error_messages.hpp>
 #include <clp_ffi_py/ir/native/LogEvent.hpp>
 #include <clp_ffi_py/ir/native/PyQuery.hpp>
+#include <clp_ffi_py/ir/native/utils.hpp>
 #include <clp_ffi_py/Py_utils.hpp>
 #include <clp_ffi_py/PyObjectCast.hpp>
 #include <clp_ffi_py/utils.hpp>
@@ -12,104 +16,52 @@
 namespace clp_ffi_py::ir::native {
 namespace {
 /**
- * Serializes the attributes from a C++ attribute table into the Python dict.
+ * Formats the android attributes.
  * @param attributes
- * @return Python dict with the serialized [name, value] attribute pairs on
- * success.
- * @return nullptr on failure with the relevant Python exception and error set.
- */
-auto serialize_attributes_to_python_dict(LogEvent::attribute_table_t const& attributes)
-        -> PyObject* {
-    auto* py_attributes{PyDict_New()};
-    if (nullptr == py_attributes) {
-        return nullptr;
-    }
-    bool failed{false};
-    for (auto const& [attr_name, attribute] : attributes) {
-        PyObjectPtr<PyObject> const attr_name_py{PyUnicode_FromString(attr_name.c_str())};
-        if (nullptr == attr_name_py.get()) {
-            failed = true;
-            break;
-        }
-        if (false == attribute.has_value()) {
-            PyDict_SetItem(py_attributes, attr_name_py.get(), Py_None);
-            continue;
-        }
-        auto const& attr_val{attribute.value()};
-        PyObjectPtr<PyObject> attr_py{nullptr};
-        if (attr_val.is_type<ffi::ir_stream::attr_int_t>()) {
-            auto* attr_int_py{PyLong_FromLongLong(attr_val.get_value<ffi::ir_stream::attr_int_t>())
-            };
-            attr_py.reset(attr_int_py);
-        } else if (attr_val.is_type<ffi::ir_stream::attr_str_t>()) {
-            std::string_view attr_str{attr_val.get_value<ffi::ir_stream::attr_str_t>()};
-            auto* attr_str_py{PyUnicode_FromString(attr_str.data())};
-            attr_py.reset(attr_str_py);
-        } else {
-            PyErr_SetString(PyExc_NotImplementedError, "Unsupported attribute type");
-        }
-        if (nullptr == attr_py.get()) {
-            failed = true;
-            break;
-        }
-        if (-1 == PyDict_SetItem(py_attributes, attr_name_py.get(), attr_py.get())) {
-            failed = true;
-            break;
-        }
-    }
-    if (failed) {
-        Py_DECREF(py_attributes);
-        return nullptr;
-    }
-    return py_attributes;
-}
-
-/**
- * Deserializes the attributes from the Python dict.
- * @param py_attr_dict
- * @param attributes
+ * @param formatted_attributes
  * @return true on success.
  * @return false on failure with the relevant Python exception and error set.
  */
-auto deserialize_attributes_from_python_dict(
-        PyObject* py_attr_dict,
-        LogEvent::attribute_table_t& attributes
+auto format_android_log(
+        LogEvent::attribute_table_t const& attributes,
+        std::string& formatted_attributes
 ) -> bool {
-    if (false == static_cast<bool>(PyDict_CheckExact(py_attr_dict))) {
-        PyErr_SetString(PyExc_TypeError, clp_ffi_py::cPyTypeError);
-        return false;
-    }
-    PyObject* py_attr_name{};
-    PyObject* py_attr{};
-    Py_ssize_t pos{0};
-    ffi::ir_stream::attr_str_t attr_str;
-    ffi::ir_stream::attr_int_t attr_int;
+    auto get_priority_char = [](ffi::ir_stream::attr_int_t priority) -> char {
+        switch (priority) {
+                /* clang-format off */
+            case 2: return 'V';
+            case 3: return 'D';
+            case 4: return 'I';
+            case 5: return 'W';
+            case 6: return 'E';
+            case 7: return 'F';
+            case 8: return 'S';
 
-    bool success{true};
-    std::string_view attr_name_view;
-    while (static_cast<bool>(PyDict_Next(py_attr_dict, &pos, &py_attr_name, &py_attr))) {
-        if (false == parse_py_string_as_string_view(py_attr_name, attr_name_view)) {
-            PyErr_SetString(PyExc_TypeError, "String keys are expected in attribute table.");
-            return false;
+            default:                  return '?';
+                /* clang-format on */
         }
-        if (Py_IsNone(py_attr)) {
-            attributes.emplace(attr_name_view, std::nullopt);
-            continue;
-        }
-        if (static_cast<bool>(PyUnicode_Check(py_attr))) {
-            if (false == parse_py_string(py_attr, attr_str)) {
-                return false;
-            }
-            attributes.emplace(attr_name_view, attr_str);
-        } else if (static_cast<bool>(PyLong_Check(py_attr))) {
-            if (false == parse_py_int<ffi::ir_stream::attr_int_t>(py_attr, attr_int)) {
-                return false;
-            }
-            attributes.emplace(attr_name_view, attr_int);
-        } else {
-            PyErr_SetString(PyExc_TypeError, "Unknown serialized log attribute type.");
-            return false;
-        }
+    };
+    try {
+        std::ostringstream attribute_formatter;
+        attribute_formatter << " " << std::setw(5)
+                            << attributes.at("pid").value().get_value<ffi::ir_stream::attr_int_t>();
+        attribute_formatter << " " << std::setw(5)
+                            << attributes.at("tid").value().get_value<ffi::ir_stream::attr_int_t>();
+        auto const priority_val{
+                attributes.at("priority").value().get_value<ffi::ir_stream::attr_int_t>()
+        };
+        attribute_formatter << " " << get_priority_char(priority_val);
+        attribute_formatter << " " << std::left << std::setw(8) << std::setfill(' ')
+                            << attributes.at("tag").value().get_value<ffi::ir_stream::attr_str_t>();
+        attribute_formatter << ": ";
+        formatted_attributes = attribute_formatter.str();
+    } catch (std::exception const& ex) {
+        PyErr_Format(
+                PyExc_RuntimeError,
+                "Failed to format android logs with attributes. std::exception: %s",
+                ex.what()
+        );
+        return false;
     }
     return true;
 }
@@ -236,6 +188,20 @@ auto PyLogEvent_getstate(PyLogEvent* self) -> PyObject* {
         std::string formatted_timestamp;
         if (false == clp_ffi_py::parse_py_string(formatted_timestamp_ptr, formatted_timestamp)) {
             return nullptr;
+        }
+        if (self->has_metadata() && self->get_py_metadata()->get_metadata()->is_android_log()
+            && self->get_log_event()->has_attributes())
+        {
+            std::string formatted_attributes;
+            if (false
+                == format_android_log(
+                        self->get_log_event()->get_attributes(),
+                        formatted_attributes
+                ))
+            {
+                return nullptr;
+            }
+            formatted_timestamp += formatted_attributes;
         }
         log_event->set_formatted_timestamp(formatted_timestamp);
     }
@@ -598,6 +564,15 @@ auto PyLogEvent::get_formatted_message(PyObject* timezone) -> PyObject* {
     std::string formatted_timestamp;
     if (false == parse_py_string(formatted_timestamp_ptr, formatted_timestamp)) {
         return nullptr;
+    }
+    if (has_metadata() && m_py_metadata->get_metadata()->is_android_log()
+        && m_log_event->has_attributes())
+    {
+        std::string formatted_attributes;
+        if (false == format_android_log(m_log_event->get_attributes(), formatted_attributes)) {
+            return nullptr;
+        }
+        formatted_timestamp += formatted_attributes;
     }
 
     if (cache_formatted_timestamp) {

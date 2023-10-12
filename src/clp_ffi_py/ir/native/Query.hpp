@@ -4,10 +4,12 @@
 #include <limits>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 #include <clp/components/core/src/ErrorCode.hpp>
 #include <clp/components/core/src/ffi/encoding_methods.hpp>
+#include <clp/components/core/src/ffi/ir_stream/attributes.hpp>
 
 #include <clp_ffi_py/ExceptionFFI.hpp>
 #include <clp_ffi_py/ir/native/LogEvent.hpp>
@@ -105,12 +107,14 @@ public:
      * @param search_time_upper_bound End of search time range (inclusive).
      * @param wildcard_queries A list of wildcard queries. Each wildcard query
      * must be valid (see `wildcard_match_unsafe`).
+     * @param attribute_queries Query on log event's attributes.
      * @param search_time_termination_margin The margin used to determine the
      * search termination timestamp (see note in the class' docstring).
      */
     Query(ffi::epoch_time_ms_t search_time_lower_bound,
           ffi::epoch_time_ms_t search_time_upper_bound,
           std::vector<WildcardQuery> wildcard_queries,
+          LogEvent::attribute_table_t attribute_queries,
           ffi::epoch_time_ms_t search_time_termination_margin = cDefaultSearchTimeTerminationMargin)
             : m_lower_bound_ts{search_time_lower_bound},
               m_upper_bound_ts{search_time_upper_bound},
@@ -119,8 +123,13 @@ public:
                               ? search_time_upper_bound + search_time_termination_margin
                               : cTimestampMax
               },
-              m_wildcard_queries{std::move(wildcard_queries)} {
+              m_wildcard_queries{std::move(wildcard_queries)},
+              m_attribute_queries(std::move(attribute_queries)) {
         throw_if_ts_range_invalid();
+    }
+
+    auto set_attribute_queries(LogEvent::attribute_table_t attribute_queries) -> void {
+        m_attribute_queries = std::move(attribute_queries);
     }
 
     [[nodiscard]] auto get_lower_bound_ts() const -> ffi::epoch_time_ms_t {
@@ -133,6 +142,10 @@ public:
 
     [[nodiscard]] auto get_wildcard_queries() const -> std::vector<WildcardQuery> const& {
         return m_wildcard_queries;
+    }
+
+    [[nodiscard]] auto get_attribute_queries() const -> LogEvent::attribute_table_t const& {
+        return m_attribute_queries;
     }
 
     /**
@@ -172,15 +185,42 @@ public:
     [[nodiscard]] auto matches_wildcard_queries(std::string_view log_message) const -> bool;
 
     /**
+     * @param attributes
+     * @return Whether the attributes associated with a log event matches the
+     * underlying query.
+     * @throw ExceptionFFI if the query contains attribute names that doesn't
+     * belong to the log event.
+     */
+    [[nodiscard]] auto matches_attributes(LogEvent::attribute_table_t const& attributes) const
+            -> bool;
+
+    /**
+     * Matches with the decoded attributes indexed by the provided index map.
+     * For the performance concern, it is assumed that the decoded attributes
+     * have been already validated. It does not execute any bound check on the
+     * attribute indexing.
+     * @param attributes
+     * @return Whether the decoded attributes (stored as a vector) matches the
+     * underlying queries.
+     * @throw ExceptionFFI if the query contains attribute names that doesn't
+     * belong to the log event.
+     */
+    [[nodiscard]] auto matches_decoded_attributes(
+            std::vector<std::optional<ffi::ir_stream::Attribute>> const& decoded_attributes,
+            std::unordered_map<std::string, size_t> const& attribute_idx_map
+    ) -> bool;
+
+    /**
      * Validates whether the input log event matches the query.
      * @param log_event Input log event.
-     * @return true if the timestamp is in range, and the wildcard list is empty
-     * or has at least one match.
+     * @return true if the timestamp is in range, the wildcard list is empty
+     * or has at least one match, and all the attributes match.
      * @return false otherwise.
      */
     [[nodiscard]] auto matches(LogEvent const& log_event) const -> bool {
         return matches_time_range(log_event.get_timestamp())
-               && matches_wildcard_queries(log_event.get_log_message_view());
+               && matches_wildcard_queries(log_event.get_log_message_view())
+               && matches_attributes(log_event.get_attributes());
     }
 
 private:
@@ -202,6 +242,7 @@ private:
     ffi::epoch_time_ms_t m_upper_bound_ts;
     ffi::epoch_time_ms_t m_search_termination_ts;
     std::vector<WildcardQuery> m_wildcard_queries;
+    LogEvent::attribute_table_t m_attribute_queries;
 };
 }  // namespace clp_ffi_py::ir::native
 #endif

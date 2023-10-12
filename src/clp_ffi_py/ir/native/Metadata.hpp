@@ -65,7 +65,16 @@ public:
         return m_attribute_table;
     }
 
+    [[nodiscard]] auto get_attribute_idx_map() const
+            -> std::unordered_map<std::string, size_t> const& {
+        return m_attribute_idx_map;
+    }
+
     [[nodiscard]] auto get_attribute_idx(std::string const& attr_name) const -> size_t;
+
+    [[nodiscard]] auto is_android_log() const -> bool {
+        return m_android_build_version.has_value();
+    }
 
 private:
     bool m_is_four_byte_encoding;
@@ -73,7 +82,7 @@ private:
     std::string m_timestamp_format;
     std::string m_timezone_id;
     std::vector<ffi::ir_stream::AttributeInfo> m_attribute_table;
-    std::unordered_map<std::string, size_t> m_attribute_idx_table;
+    std::unordered_map<std::string, size_t> m_attribute_idx_map;
     std::optional<std::string> m_android_build_version;
 };
 }  // namespace clp_ffi_py::ir::native

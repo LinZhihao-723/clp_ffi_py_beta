@@ -34,6 +34,7 @@ ir_native: Extension = Extension(
         "src/clp_ffi_py/ir/native/PyMetadata.cpp",
         "src/clp_ffi_py/ir/native/PyQuery.cpp",
         "src/clp_ffi_py/ir/native/Query.cpp",
+        "src/clp_ffi_py/ir/native/utils.cpp",
         "src/clp_ffi_py/modules/ir_native.cpp",
         "src/clp_ffi_py/Py_utils.cpp",
         "src/clp_ffi_py/utils.cpp",

@@ -46,6 +46,7 @@ auto decode(
     auto timestamp{decoder_buffer->get_ref_timestamp()};
     auto const num_attributes{py_metadata->get_metadata()->get_num_attributes()};
     auto const& attribute_info_table{py_metadata->get_metadata()->get_attribute_table()};
+    auto const& attribute_idx_map{py_metadata->get_metadata()->get_attribute_idx_map()};
     std::vector<std::optional<ffi::ir_stream::Attribute>> decoded_attributes;
     size_t current_log_event_idx{0};
     bool reached_eof{false};
@@ -106,9 +107,16 @@ auto decode(
         if (query->ts_safely_outside_time_range(timestamp)) {
             Py_RETURN_NONE;
         }
-        if (query->matches_time_range(timestamp)
-            && query->matches_wildcard_queries(decoded_message))
-        {
+        bool matches{false};
+        try {
+            matches = query->matches_time_range(timestamp)
+                      && query->matches_wildcard_queries(decoded_message)
+                      && query->matches_decoded_attributes(decoded_attributes, attribute_idx_map);
+        } catch (ExceptionFFI const& ex) {
+            PyErr_Format(PyExc_RuntimeError, "Failed to match the queries: %s", ex.what());
+            return nullptr;
+        }
+        if (matches) {
             break;
         }
     }

@@ -47,6 +47,7 @@ class Query:
         search_time_lower_bound: int = default_search_time_lower_bound(),
         search_time_upper_bound: int = default_search_time_upper_bound(),
         wildcard_queries: Optional[List[WildcardQuery]] = None,
+        attribute_queries: Optional[Dict[str, Union[str, int]]] = None,
         search_time_termination_margin: int = default_search_time_termination_margin(),
     ): ...
     def __str__(self) -> str: ...

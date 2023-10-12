@@ -26,6 +26,7 @@ public:
      * @param search_time_upper_bound End of search time range (inclusive).
      * @param wildcard_queries A list of wildcard queries. Each wildcard query
      * must be valid (see `wildcard_match_unsafe`).
+     * @param attribute_queries Queries on log event attributes.
      * @param search_time_termination_margin The margin used to determine the
      * search termination timestamp (see note in the Query class' docstring).
      * @return true on success.
@@ -36,6 +37,7 @@ public:
             ffi::epoch_time_ms_t search_time_lower_bound,
             ffi::epoch_time_ms_t search_time_upper_bound,
             std::vector<WildcardQuery> const& wildcard_queries,
+            LogEvent::attribute_table_t const& attribute_queries,
             ffi::epoch_time_ms_t search_time_termination_margin
     ) -> bool;
 
