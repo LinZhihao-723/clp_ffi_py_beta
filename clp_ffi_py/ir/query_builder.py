@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import List, Optional
+from typing import Dict, List, Optional, Union
 
 from clp_ffi_py.ir.native import Query
 from clp_ffi_py.wildcard_query import WildcardQuery
@@ -31,6 +31,7 @@ class QueryBuilder:
         self._search_time_upper_bound: int = Query.default_search_time_upper_bound()
         self._search_time_termination_margin: int = Query.default_search_time_termination_margin()
         self._wildcard_queries: List[WildcardQuery] = []
+        self._attribute_queries: Dict[str, Union[str, int]] = {}
 
     @property
     def search_time_lower_bound(self) -> int:
@@ -50,6 +51,13 @@ class QueryBuilder:
         :return: A deep copy of the underlying wildcard query list.
         """
         return deepcopy(self._wildcard_queries)
+
+    @property
+    def attribute_queries(self) -> Dict[str, Union[str, int]]:
+        """
+        :return: A deep copy of the underlying attribute query dict.
+        """
+        return deepcopy(self._attribute_queries)
 
     def set_search_time_lower_bound(self, ts: int) -> QueryBuilder:
         """
@@ -100,6 +108,18 @@ class QueryBuilder:
         self._wildcard_queries.extend(wildcard_queries)
         return self
 
+    def add_attribute_query(self, attr_name: str, attr_val: Union[str, int]) -> QueryBuilder:
+        """
+        Adds a new attribute query as a key-value pair with the given name and
+        value. It will overwrite the old value if the name key already exists.
+
+        :param attr_name: The name of the attribute.
+        :param attr_val: The value of the attribute.
+        :return: self.
+        """
+        self._attribute_queries[attr_name] = attr_val
+        return self
+
     def reset_search_time_lower_bound(self) -> QueryBuilder:
         """
         Resets the search time lower bound to the default value.
@@ -136,6 +156,15 @@ class QueryBuilder:
         self._wildcard_queries.clear()
         return self
 
+    def reset_attribute_queries(self) -> QueryBuilder:
+        """
+        Clears the attribute queries.
+
+        :return: self.
+        """
+        self._attribute_queries.clear()
+        return self
+
     def reset(self) -> QueryBuilder:
         """
         Resets all settings to their defaults.
@@ -144,6 +173,7 @@ class QueryBuilder:
         """
         return (
             self.reset_wildcard_queries()
+            .reset_attribute_queries()
             .reset_search_time_termination_margin()
             .reset_search_time_upper_bound()
             .reset_search_time_lower_bound()
@@ -161,11 +191,15 @@ class QueryBuilder:
                 "The search time lower bound exceeds the search time upper bound."
             )
         wildcard_queries: Optional[List[WildcardQuery]] = None
+        attribute_queries: Optional[Dict[str, Union[str, int]]] = None
         if 0 != len(self._wildcard_queries):
             wildcard_queries = self._wildcard_queries
+        if 0 != len(self._attribute_queries):
+            attribute_queries = self._attribute_queries
         return Query(
             search_time_lower_bound=self._search_time_lower_bound,
             search_time_upper_bound=self._search_time_upper_bound,
             search_time_termination_margin=self._search_time_termination_margin,
             wildcard_queries=wildcard_queries,
+            attribute_queries=attribute_queries,
         )

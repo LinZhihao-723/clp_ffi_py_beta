@@ -87,7 +87,7 @@ auto deserialize_attributes_from_python_dict(
             );
             return false;
         }
-        if (Py_IsNone(py_attr)) {
+        if (Py_None == py_attr) {
             attributes.emplace(attr_name_view, std::nullopt);
             continue;
         }
