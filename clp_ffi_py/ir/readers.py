@@ -23,6 +23,8 @@ class ClpIrStreamReader(Iterator[LogEvent]):
     :param allow_incomplete_stream: If set to `True`, an incomplete CLP IR
         stream is not treated as an error. Instead, encountering such a stream
         is seen as reaching its end without raising any exceptions.
+    :param cache_encoded_log_event: If set to `True`, the encoded log event with
+        all the attributes, encoded variables, and logtype will be cached.
     """
 
     DEFAULT_DECODER_BUFFER_SIZE: int = 65536
@@ -33,6 +35,7 @@ class ClpIrStreamReader(Iterator[LogEvent]):
         decoder_buffer_size: int = DEFAULT_DECODER_BUFFER_SIZE,
         enable_compression: bool = True,
         allow_incomplete_stream: bool = False,
+        cache_encoded_log_event: bool = False,
     ):
         self.__istream: Union[IO[bytes], ZstdDecompressionReader]
         if enable_compression:
@@ -43,6 +46,7 @@ class ClpIrStreamReader(Iterator[LogEvent]):
         self._decoder_buffer: DecoderBuffer = DecoderBuffer(self.__istream, decoder_buffer_size)
         self._metadata: Optional[Metadata] = None
         self._allow_incomplete_stream: bool = allow_incomplete_stream
+        self._cache_encoded_log_event: bool = cache_encoded_log_event
 
     def read_next_log_event(self) -> Optional[LogEvent]:
         """
@@ -56,7 +60,9 @@ class ClpIrStreamReader(Iterator[LogEvent]):
             fails.
         """
         return Decoder.decode_next_log_event(
-            self._decoder_buffer, allow_incomplete_stream=self._allow_incomplete_stream
+            self._decoder_buffer,
+            allow_incomplete_stream=self._allow_incomplete_stream,
+            cache_encoded_log_event=self._cache_encoded_log_event,
         )
 
     def read_preamble(self) -> None:
@@ -97,6 +103,7 @@ class ClpIrStreamReader(Iterator[LogEvent]):
                 self._decoder_buffer,
                 query=query,
                 allow_incomplete_stream=self._allow_incomplete_stream,
+                cache_encoded_log_event=self._cache_encoded_log_event,
             )
             if None is log_event:
                 break
@@ -141,6 +148,7 @@ class ClpIrFileReader(ClpIrStreamReader):
         decoder_buffer_size: int = ClpIrStreamReader.DEFAULT_DECODER_BUFFER_SIZE,
         enable_compression: bool = True,
         allow_incomplete_stream: bool = False,
+        cache_encoded_log_event: bool = False,
     ):
         self._path: Path = fpath
         super().__init__(
@@ -148,6 +156,7 @@ class ClpIrFileReader(ClpIrStreamReader):
             decoder_buffer_size=decoder_buffer_size,
             enable_compression=enable_compression,
             allow_incomplete_stream=allow_incomplete_stream,
+            cache_encoded_log_event=cache_encoded_log_event,
         )
 
     def dump(self, ostream: IO[str] = stderr) -> None:

@@ -7,6 +7,7 @@
 
 #include <clp/components/core/src/ffi/encoding_methods.hpp>
 #include <clp/components/core/src/ffi/ir_stream/attributes.hpp>
+#include <gsl/span>
 
 namespace clp_ffi_py::ir::native {
 /**
@@ -27,20 +28,31 @@ public:
      * @param timestamp
      * @param index
      * @param formatted_timestamp
+     * @param encoded_log_event_view
      */
     explicit LogEvent(
             std::string_view log_message,
             ffi::epoch_time_ms_t timestamp,
             size_t index,
             attribute_table_t attributes,
-            std::optional<std::string_view> formatted_timestamp = std::nullopt
+            std::optional<std::string_view> formatted_timestamp = std::nullopt,
+            std::optional<gsl::span<int8_t>> encoded_log_event_view = std::nullopt
     )
             : m_log_message{log_message},
               m_timestamp{timestamp},
               m_index{index},
-              m_attributes(std::move(attributes)) {
+              m_attributes(std::move(attributes)),
+              m_cached_encoded_log_event_size{0} {
         if (formatted_timestamp.has_value()) {
             m_formatted_timestamp = std::string(formatted_timestamp.value());
+        }
+        if (encoded_log_event_view.has_value()) {
+            m_cached_encoded_log_event_size = encoded_log_event_view->size();
+            m_cached_encoded_log_event
+                    = std::make_unique<int8_t[]>(m_cached_encoded_log_event_size);
+            memcpy(m_cached_encoded_log_event.get(),
+                   encoded_log_event_view->data(),
+                   m_cached_encoded_log_event_size);
         }
     }
 
@@ -61,6 +73,14 @@ public:
     [[nodiscard]] auto get_attributes() const -> attribute_table_t const& { return m_attributes; }
 
     [[nodiscard]] auto has_attributes() const -> bool { return false == m_attributes.empty(); }
+
+    [[nodiscard]] auto has_cached_encoded_log_event() const -> bool {
+        return nullptr != m_cached_encoded_log_event.get();
+    }
+
+    [[nodiscard]] auto get_cached_encoded_log_event() const -> gsl::span<int8_t> {
+        return gsl::span<int8_t>{m_cached_encoded_log_event.get(), m_cached_encoded_log_event_size};
+    }
 
     /**
      * @return Whether the log event has the formatted timestamp buffered.
@@ -85,6 +105,8 @@ private:
     size_t m_index;
     std::string m_formatted_timestamp;
     attribute_table_t m_attributes;
+    std::unique_ptr<int8_t[]> m_cached_encoded_log_event;
+    size_t m_cached_encoded_log_event_size;
 };
 }  // namespace clp_ffi_py::ir::native
 

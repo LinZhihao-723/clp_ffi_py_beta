@@ -5,6 +5,7 @@
 #include <clp/components/core/src/BufferReader.hpp>
 #include <clp/components/core/src/ffi/ir_stream/attributes.hpp>
 #include <clp/components/core/src/ffi/ir_stream/decoding_methods.hpp>
+#include <clp/components/core/src/ffi/ir_stream/encoding_methods.hpp>
 #include <clp/components/core/src/type_utils.hpp>
 #include <gsl/span>
 #include <json/single_include/nlohmann/json.hpp>
@@ -31,6 +32,11 @@ namespace {
  * @param allow_incomplete_stream A flag to indicate whether the incomplete
  * stream error should be ignored. If it is set to true, incomplete stream error
  * should be treated as the termination.
+ * @param cache_encoded_log_event A flag to indicate whether to cache the
+ * encoded log event. The buffered log event will contain all the encoded
+ * attributes, variables, and the logtype. The encoded timestamp delta is not
+ * cached because it should be recalculated whenever to reuse the cached
+ * encoded results.
  * @return Log event represented as PyLogEvent on success.
  * @return PyNone on termination.
  * @return nullptr on failure with the relevant Python exception and error set.
@@ -39,7 +45,8 @@ auto decode(
         PyDecoderBuffer* decoder_buffer,
         PyMetadata* py_metadata,
         PyQuery* py_query,
-        bool allow_incomplete_stream
+        bool allow_incomplete_stream,
+        bool cache_encoded_log_event
 ) -> PyObject* {
     std::string decoded_message;
     ffi::epoch_time_ms_t timestamp_delta{0};
@@ -50,6 +57,8 @@ auto decode(
     std::vector<std::optional<ffi::ir_stream::Attribute>> decoded_attributes;
     size_t current_log_event_idx{0};
     bool reached_eof{false};
+    gsl::span<int8_t> encoded_log_event_view;
+
     while (true) {
         auto const unconsumed_bytes{decoder_buffer->get_unconsumed_bytes()};
         BufferReader ir_buffer{
@@ -97,7 +106,7 @@ auto decode(
         timestamp += timestamp_delta;
         current_log_event_idx = decoder_buffer->get_and_increment_decoded_message_count();
         auto const curr_pos{ir_buffer.get_pos()};
-        decoder_buffer->commit_read_buffer_consumption(curr_pos);
+        decoder_buffer->commit_read_buffer_consumption(curr_pos, encoded_log_event_view);
 
         if (nullptr == py_query) {
             break;
@@ -130,12 +139,28 @@ auto decode(
     for (size_t i{0}; i < attribute_info_table.size(); ++i) {
         attributes.emplace(attribute_info_table[i].get_name(), decoded_attributes[i]);
     }
+    if (false == cache_encoded_log_event) {
+        return py_reinterpret_cast<PyObject>(PyLogEvent::create_new_log_event(
+                decoded_message,
+                timestamp,
+                current_log_event_idx,
+                py_metadata,
+                attributes
+        ));
+    }
+    auto const encoded_timestamp_delta_size{
+            ffi::ir_stream::four_byte_encoding::get_encoded_timestamp_delta_size(timestamp_delta)
+    };
+    auto const encoded_log_event_size_without_ts_delta{
+            encoded_log_event_view.size() - encoded_timestamp_delta_size
+    };
     return py_reinterpret_cast<PyObject>(PyLogEvent::create_new_log_event(
             decoded_message,
             timestamp,
             current_log_event_idx,
             py_metadata,
-            attributes
+            attributes,
+            encoded_log_event_view.subspan(0, encoded_log_event_size_without_ts_delta)
     ));
 }
 }  // namespace
@@ -233,27 +258,31 @@ auto decode_next_log_event(PyObject* Py_UNUSED(self), PyObject* args, PyObject* 
     static char keyword_decoder_buffer[]{"decoder_buffer"};
     static char keyword_query[]{"query"};
     static char keyword_allow_incomplete_stream[]{"allow_incomplete_stream"};
+    static char keyword_cache_encoded_log_event[]{"cache_encoded_log_event"};
     static char* keyword_table[]{
             static_cast<char*>(keyword_decoder_buffer),
             static_cast<char*>(keyword_query),
             static_cast<char*>(keyword_allow_incomplete_stream),
+            static_cast<char*>(keyword_cache_encoded_log_event),
             nullptr
     };
 
     PyDecoderBuffer* decoder_buffer{nullptr};
     PyObject* query{Py_None};
     int allow_incomplete_stream{0};
+    int cache_encoded_log_event{0};
 
     if (false
         == static_cast<bool>(PyArg_ParseTupleAndKeywords(
                 args,
                 keywords,
-                "O!|Op",
+                "O!|Opp",
                 static_cast<char**>(keyword_table),
                 PyDecoderBuffer::get_py_type(),
                 &decoder_buffer,
                 &query,
-                &allow_incomplete_stream
+                &allow_incomplete_stream,
+                &cache_encoded_log_event
         )))
     {
         return nullptr;
@@ -279,7 +308,8 @@ auto decode_next_log_event(PyObject* Py_UNUSED(self), PyObject* args, PyObject* 
             decoder_buffer,
             decoder_buffer->get_metadata(),
             is_query_given ? py_reinterpret_cast<PyQuery>(query) : nullptr,
-            static_cast<bool>(allow_incomplete_stream)
+            static_cast<bool>(allow_incomplete_stream),
+            static_cast<bool>(cache_encoded_log_event)
     );
 }
 }

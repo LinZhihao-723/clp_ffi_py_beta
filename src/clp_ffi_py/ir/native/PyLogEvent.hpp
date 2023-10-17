@@ -5,6 +5,8 @@
 
 #include <optional>
 
+#include <gsl/span>
+
 #include <clp_ffi_py/ir/native/LogEvent.hpp>
 #include <clp_ffi_py/ir/native/PyMetadata.hpp>
 #include <clp_ffi_py/PyObjectUtils.hpp>
@@ -34,6 +36,7 @@ public:
      * @param formatted_timestamp Formatted timestamp. This argument is not
      * given by default. It should be given when deserializing the object from
      * a saved state.
+     * @param encoded_log_event_view The view of the encoded log event.
      * @return true on success.
      * @return false on failure with the relevant Python exception and error
      * set.
@@ -44,7 +47,8 @@ public:
             size_t index,
             PyMetadata* metadata,
             LogEvent::attribute_table_t const& attributes,
-            std::optional<std::string_view> formatted_timestamp = std::nullopt
+            std::optional<std::string_view> formatted_timestamp = std::nullopt,
+            std::optional<gsl::span<int8_t>> encoded_log_event_view = std::nullopt
     ) -> bool;
 
     /**
@@ -130,6 +134,7 @@ public:
      * @param metadata A PyMetadata instance to bind with the log event (can be
      * nullptr).
      * @param attributes Attributes associated with the log event.
+     * @param encoded_log_event_view The view of the encoded log event.
      * @return a new reference of a PyLogEvent object that is initialized with
      * the given inputs.
      * @return nullptr on failure with the relevant Python exception and error
@@ -140,7 +145,8 @@ public:
             ffi::epoch_time_ms_t timestamp,
             size_t index,
             PyMetadata* metadata,
-            LogEvent::attribute_table_t const& attributes
+            LogEvent::attribute_table_t const& attributes,
+            std::optional<gsl::span<int8_t>> encoded_log_event_view = std::nullopt
     ) -> PyLogEvent*;
 
 private:

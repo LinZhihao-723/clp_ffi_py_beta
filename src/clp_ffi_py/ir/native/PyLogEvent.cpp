@@ -434,7 +434,7 @@ auto PyLogEvent_get_formatted_message(PyLogEvent* self, PyObject* args, PyObject
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays)
 PyDoc_STRVAR(
-        cPyLogEventGetAttributes,
+        cPyLogEventGetAttributesDoc,
         "get_attributes()\n"
         "--\n\n"
         ":return: The attributes associated with the log returned as a newly created Python "
@@ -443,6 +443,27 @@ PyDoc_STRVAR(
 
 auto PyLogEvent_get_attributes(PyLogEvent* self) -> PyObject* {
     return serialize_attributes_to_python_dict(self->get_log_event()->get_attributes());
+}
+
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays)
+PyDoc_STRVAR(
+        cPyLogEventGetCachedEncodedLogEventDoc,
+        "get_cached_encoded_log_event()\n"
+        "--\n\n"
+        ":return: A bytearray that contains the encoded log event.\n"
+        ":return: None if the encoded log event is not cached.\n"
+);
+
+auto PyLogEvent_get_cached_encoded_log_event(PyLogEvent* self) -> PyObject* {
+    auto const* log_event{self->get_log_event()};
+    if (false == log_event->has_cached_encoded_log_event()) {
+        Py_RETURN_NONE;
+    }
+    auto encoded_log_event_view{log_event->get_cached_encoded_log_event()};
+    return PyByteArray_FromStringAndSize(
+            size_checked_pointer_cast<char const>(encoded_log_event_view.data()),
+            static_cast<Py_ssize_t>(encoded_log_event_view.size())
+    );
 }
 }
 
@@ -466,12 +487,17 @@ PyMethodDef PyLogEvent_method_table[]{
         {"get_attributes",
          py_c_function_cast(PyLogEvent_get_attributes),
          METH_NOARGS,
-         static_cast<char const*>(cPyLogEventGetAttributes)},
+         static_cast<char const*>(cPyLogEventGetAttributesDoc)},
 
         {"get_formatted_message",
          py_c_function_cast(PyLogEvent_get_formatted_message),
          METH_KEYWORDS | METH_VARARGS,
          static_cast<char const*>(cPyLogEventGetFormattedMessageDoc)},
+
+        {"get_cached_encoded_log_event",
+         py_c_function_cast(PyLogEvent_get_cached_encoded_log_event),
+         METH_NOARGS,
+         static_cast<char const*>(cPyLogEventGetCachedEncodedLogEventDoc)},
 
         {"match_query",
          py_c_function_cast(PyLogEvent_match_query),
@@ -591,10 +617,18 @@ auto PyLogEvent::init(
         size_t index,
         PyMetadata* metadata,
         LogEvent::attribute_table_t const& attributes,
-        std::optional<std::string_view> formatted_timestamp
+        std::optional<std::string_view> formatted_timestamp,
+        std::optional<gsl::span<int8_t>> encoded_log_event_view
 ) -> bool {
     // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-    m_log_event = new LogEvent(log_message, timestamp, index, attributes, formatted_timestamp);
+    m_log_event = new LogEvent(
+            log_message,
+            timestamp,
+            index,
+            attributes,
+            formatted_timestamp,
+            encoded_log_event_view
+    );
     if (nullptr == m_log_event) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::cOutofMemoryError);
         return false;
@@ -624,7 +658,8 @@ auto PyLogEvent::create_new_log_event(
         ffi::epoch_time_ms_t timestamp,
         size_t index,
         PyMetadata* metadata,
-        LogEvent::attribute_table_t const& attributes
+        LogEvent::attribute_table_t const& attributes,
+        std::optional<gsl::span<int8_t>> encoded_log_event_view
 ) -> PyLogEvent* {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
     PyLogEvent* self{PyObject_New(PyLogEvent, get_py_type())};
@@ -633,7 +668,17 @@ auto PyLogEvent::create_new_log_event(
         return nullptr;
     }
     self->default_init();
-    if (false == self->init(log_message, timestamp, index, metadata, attributes)) {
+    if (false
+        == self->init(
+                log_message,
+                timestamp,
+                index,
+                metadata,
+                attributes,
+                std::nullopt,
+                encoded_log_event_view
+        ))
+    {
         return nullptr;
     }
     return self;

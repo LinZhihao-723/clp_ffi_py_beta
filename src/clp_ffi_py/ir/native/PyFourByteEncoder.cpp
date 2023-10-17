@@ -27,6 +27,23 @@ PyDoc_STRVAR(
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays)
 PyDoc_STRVAR(
+        cEncodeAndroidPreambleDoc,
+        "encode_android_preamble(ref_timestamp, timestamp_format, timezone)\n"
+        "--\n\n"
+        "Creates the encoded CLP preamble for an Android IR stream of encoded log messages"
+        " using the 4-byte encoding.\n\n"
+        ":param ref_timestamp: Reference timestamp used to calculate deltas emitted with each "
+        "message.\n"
+        ":param timestamp_format: Timestamp format to be use when generating the logs with a "
+        "reader.\n"
+        ":param timezone: Timezone in TZID format to be use when generating the timestamp "
+        "from Unix epoch time.\n"
+        ":raises NotImplementedError: If metadata length too large.\n"
+        ":return: The encoded preamble.\n"
+);
+
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays)
+PyDoc_STRVAR(
         cEncodeMessageAndTimestampDeltaDoc,
         "encode_message_and_timestamp_delta(timestamp_delta, msg)\n"
         "--\n\n"
@@ -77,6 +94,11 @@ PyMethodDef PyFourByteEncoder_method_table[]{
          clp_ffi_py::ir::native::encode_four_byte_preamble,
          METH_VARARGS | METH_STATIC,
          static_cast<char const*>(cEncodePreambleDoc)},
+
+        {"encode_android_preamble",
+         clp_ffi_py::ir::native::encode_four_byte_android_preamble,
+         METH_VARARGS | METH_STATIC,
+         static_cast<char const*>(cEncodeAndroidPreambleDoc)},
 
         {"encode_message_and_timestamp_delta",
          clp_ffi_py::ir::native::encode_four_byte_message_and_timestamp_delta,
