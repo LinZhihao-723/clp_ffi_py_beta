@@ -9,6 +9,7 @@
 #include <clp_ffi_py/ir/native/LogEvent.hpp>
 #include <clp_ffi_py/ir/native/PyLogEvent.hpp>
 #include <clp_ffi_py/ir/native/Query.hpp>
+#include <clp_ffi_py/ir/native/utils.hpp>
 #include <clp_ffi_py/PyObjectCast.hpp>
 #include <clp_ffi_py/utils.hpp>
 
@@ -149,11 +150,13 @@ auto PyQuery_init(PyQuery* self, PyObject* args, PyObject* keywords) -> int {
     static char keyword_search_time_lower_bound[]{"search_time_lower_bound"};
     static char keyword_search_time_upper_bound[]{"search_time_upper_bound"};
     static char keyword_wildcard_queries[]{"wildcard_queries"};
+    static char keyword_attribute_queries[]{"attribute_queries"};
     static char keyword_search_time_termination_margin[]{"search_time_termination_margin"};
     static char* keyword_table[]{
             static_cast<char*>(keyword_search_time_lower_bound),
             static_cast<char*>(keyword_search_time_upper_bound),
             static_cast<char*>(keyword_wildcard_queries),
+            static_cast<char*>(keyword_attribute_queries),
             static_cast<char*>(keyword_search_time_termination_margin),
             nullptr
     };
@@ -166,17 +169,19 @@ auto PyQuery_init(PyQuery* self, PyObject* args, PyObject* keywords) -> int {
     auto search_time_lower_bound{Query::cTimestampMin};
     auto search_time_upper_bound{Query::cTimestampMax};
     auto* py_wildcard_queries{Py_None};
+    auto* py_attribute_queries{Py_None};
     auto search_time_termination_margin{Query::cDefaultSearchTimeTerminationMargin};
 
     if (false
         == static_cast<bool>(PyArg_ParseTupleAndKeywords(
                 args,
                 keywords,
-                "|LLOL",
+                "|LLOOL",
                 static_cast<char**>(keyword_table),
                 &search_time_lower_bound,
                 &search_time_upper_bound,
                 &py_wildcard_queries,
+                &py_attribute_queries,
                 &search_time_termination_margin
         )))
     {
@@ -188,11 +193,17 @@ auto PyQuery_init(PyQuery* self, PyObject* args, PyObject* keywords) -> int {
         return -1;
     }
 
+    LogEvent::attribute_table_t attribute_queries;
+    if (false == deserialize_attributes_from_python_dict(py_attribute_queries, attribute_queries)) {
+        return -1;
+    }
+
     if (false
         == self->init(
                 search_time_lower_bound,
                 search_time_upper_bound,
                 wildcard_queries,
+                attribute_queries,
                 search_time_termination_margin
         ))
     {
@@ -217,6 +228,7 @@ auto PyQuery_dealloc(PyQuery* self) -> void {
 constexpr char const* const cStateSearchTimeLowerBound = "search_time_lower_bound";
 constexpr char const* const cStateSearchTimeUpperBound = "search_time_upper_bound";
 constexpr char const* const cStateWildcardQueries = "wildcard_queries";
+constexpr char const* const cStateAttributeQueries = "attribute_queries";
 constexpr char const* const cStateSearchTimeTerminationMargin = "search_time_termination_margin";
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays)
@@ -240,14 +252,20 @@ auto PyQuery_getstate(PyQuery* self) -> PyObject* {
     if (nullptr == py_wildcard_queries) {
         return nullptr;
     }
+    auto* py_attribute_queries{serialize_attributes_to_python_dict(query->get_attribute_queries())};
+    if (nullptr == py_attribute_queries) {
+        return nullptr;
+    }
     return Py_BuildValue(
-            "{sLsLsOsL}",
+            "{sLsLsOsOsL}",
             cStateSearchTimeLowerBound,
             query->get_lower_bound_ts(),
             cStateSearchTimeUpperBound,
             query->get_upper_bound_ts(),
             cStateWildcardQueries,
             py_wildcard_queries,
+            cStateAttributeQueries,
+            py_attribute_queries,
             cStateSearchTimeTerminationMargin,
             query->get_search_time_termination_margin()
     );
@@ -327,6 +345,16 @@ auto PyQuery_setstate(PyQuery* self, PyObject* state) -> PyObject* {
         return nullptr;
     }
 
+    auto* py_attribute_queries{PyDict_GetItemString(state, cStateAttributeQueries)};
+    if (nullptr == py_attribute_queries) {
+        PyErr_Format(PyExc_KeyError, clp_ffi_py::cSetstateKeyErrorTemplate, cStateWildcardQueries);
+        return nullptr;
+    }
+    LogEvent::attribute_table_t attribute_queries;
+    if (false == deserialize_attributes_from_python_dict(py_attribute_queries, attribute_queries)) {
+        return nullptr;
+    }
+
     auto* search_time_termination_margin_obj{
             PyDict_GetItemString(state, cStateSearchTimeTerminationMargin)
     };
@@ -353,6 +381,7 @@ auto PyQuery_setstate(PyQuery* self, PyObject* state) -> PyObject* {
                 search_time_lower_bound,
                 search_time_upper_bound,
                 wildcard_queries,
+                attribute_queries,
                 search_time_termination_margin
         ))
     {
@@ -381,7 +410,13 @@ auto PyQuery_match_log_event(PyQuery* self, PyObject* log_event) -> PyObject* {
         return nullptr;
     }
     auto* py_log_event{py_reinterpret_cast<PyLogEvent>(log_event)};
-    return get_py_bool(self->get_query()->matches(*py_log_event->get_log_event()));
+    PyObject* retval{nullptr};
+    try {
+        retval = get_py_bool(self->get_query()->matches(*py_log_event->get_log_event()));
+    } catch (ExceptionFFI const& ex) {
+        PyErr_SetString(PyExc_RuntimeError, ex.what());
+    }
+    return retval;
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays)
@@ -420,6 +455,19 @@ PyDoc_STRVAR(
 
 auto PyQuery_get_wildcard_queries(PyQuery* self) -> PyObject* {
     return serialize_wildcard_queries(self->get_query()->get_wildcard_queries());
+}
+
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays)
+PyDoc_STRVAR(
+        cPyQueryGetAttributeQueriesDoc,
+        "get_attribute_queries(self)\n"
+        "--\n\n"
+        ":return: A new Python dict of stored attribute queries.\n"
+        ":return: None if the wildcard queries are empty.\n"
+);
+
+auto PyQuery_get_attribute_queries(PyQuery* self) -> PyObject* {
+    return serialize_attributes_to_python_dict(self->get_query()->get_attribute_queries());
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays)
@@ -521,6 +569,11 @@ PyMethodDef PyQuery_method_table[]{
          METH_NOARGS,
          static_cast<char const*>(cPyQueryGetWildcardQueriesDoc)},
 
+        {"get_attribute_queries",
+         py_c_function_cast(PyQuery_get_attribute_queries),
+         METH_NOARGS,
+         static_cast<char const*>(cPyQueryGetAttributeQueriesDoc)},
+
         {"get_search_time_termination_margin",
          py_c_function_cast(PyQuery_get_search_time_termination_margin),
          METH_NOARGS,
@@ -570,12 +623,13 @@ PyDoc_STRVAR(
         "The signature of `__init__` method is shown as following:\n\n"
         "__init__(self, search_time_lower_bound=Query.default_search_time_lower_bound(), "
         "search_time_upper_bound=Query.default_search_time_upper_bound(), "
-        "wildcard_queries=None,search_time_termination_margin=Query.default_search_time_"
-        "termination_margin())\n\n"
+        "wildcard_queries=None,attribute_queries=None,"
+        "search_time_termination_margin=Query.default_search_time_termination_margin())\n\n"
         "Initializes a Query object using the given inputs.\n\n"
         ":param search_time_lower_bound: Start of search time range (inclusive).\n"
         ":param search_time_upper_bound: End of search time range (inclusive).\n"
         ":param wildcard_queries: A list of wildcard queries.\n"
+        ":param attribute_queries: A str dictionary of key-value pairs on the query attributes.\n"
         ":param search_time_termination_margin: The margin used to determine the search "
         "termination timestamp.\n"
 );
@@ -610,6 +664,7 @@ auto PyQuery::init(
         ffi::epoch_time_ms_t search_time_lower_bound,
         ffi::epoch_time_ms_t search_time_upper_bound,
         std::vector<WildcardQuery> const& wildcard_queries,
+        LogEvent::attribute_table_t const& attribute_queries,
         ffi::epoch_time_ms_t search_time_termination_margin
 ) -> bool {
     try {
@@ -618,6 +673,7 @@ auto PyQuery::init(
                 search_time_lower_bound,
                 search_time_upper_bound,
                 wildcard_queries,
+                attribute_queries,
                 search_time_termination_margin
         );
     } catch (ExceptionFFI const& ex) {

@@ -310,6 +310,18 @@ auto PyDecoderBuffer::commit_read_buffer_consumption(Py_ssize_t num_bytes_consum
     return true;
 }
 
+auto PyDecoderBuffer::commit_read_buffer_consumption(
+        Py_ssize_t num_bytes_consumed,
+        gsl::span<int8_t>& encoded_log_event_view
+) -> bool {
+    auto const encoded_log_event_offset{m_num_current_bytes_consumed};
+    if (false == commit_read_buffer_consumption(num_bytes_consumed)) {
+        return false;
+    }
+    encoded_log_event_view = m_read_buffer.subspan(encoded_log_event_offset, num_bytes_consumed);
+    return true;
+}
+
 auto PyDecoderBuffer::try_read() -> bool {
     Py_ssize_t num_bytes_read{0};
     if (false == populate_read_buffer(num_bytes_read)) {

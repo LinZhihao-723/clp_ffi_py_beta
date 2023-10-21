@@ -2,15 +2,70 @@
 
 #include "PyLogEvent.hpp"
 
+#include <iomanip>
+#include <sstream>
+
 #include <clp_ffi_py/error_messages.hpp>
 #include <clp_ffi_py/ir/native/LogEvent.hpp>
 #include <clp_ffi_py/ir/native/PyQuery.hpp>
+#include <clp_ffi_py/ir/native/utils.hpp>
 #include <clp_ffi_py/Py_utils.hpp>
 #include <clp_ffi_py/PyObjectCast.hpp>
 #include <clp_ffi_py/utils.hpp>
 
 namespace clp_ffi_py::ir::native {
 namespace {
+/**
+ * Formats the android attributes.
+ * @param attributes
+ * @param formatted_attributes
+ * @return true on success.
+ * @return false on failure with the relevant Python exception and error set.
+ */
+auto format_android_log(
+        LogEvent::attribute_table_t const& attributes,
+        std::string& formatted_attributes
+) -> bool {
+    auto get_priority_char = [](ffi::ir_stream::attr_int_t priority) -> char {
+        switch (priority) {
+                /* clang-format off */
+            case 2: return 'V';
+            case 3: return 'D';
+            case 4: return 'I';
+            case 5: return 'W';
+            case 6: return 'E';
+            case 7: return 'F';
+            case 8: return 'S';
+
+            default:                  return '?';
+                /* clang-format on */
+        }
+    };
+    try {
+        std::ostringstream attribute_formatter;
+        attribute_formatter << " " << std::setw(5)
+                            << attributes.at("pid").value().get_value<ffi::ir_stream::attr_int_t>();
+        attribute_formatter << " " << std::setw(5)
+                            << attributes.at("tid").value().get_value<ffi::ir_stream::attr_int_t>();
+        auto const priority_val{
+                attributes.at("priority").value().get_value<ffi::ir_stream::attr_int_t>()
+        };
+        attribute_formatter << " " << get_priority_char(priority_val);
+        attribute_formatter << " " << std::left << std::setw(8) << std::setfill(' ')
+                            << attributes.at("tag").value().get_value<ffi::ir_stream::attr_str_t>();
+        attribute_formatter << ": ";
+        formatted_attributes = attribute_formatter.str();
+    } catch (std::exception const& ex) {
+        PyErr_Format(
+                PyExc_RuntimeError,
+                "Failed to format android logs with attributes. std::exception: %s",
+                ex.what()
+        );
+        return false;
+    }
+    return true;
+}
+
 extern "C" {
 /**
  * Callback of PyLogEvent `__init__` method:
@@ -74,7 +129,8 @@ auto PyLogEvent_init(PyLogEvent* self, PyObject* args, PyObject* keywords) -> in
                 log_message,
                 timestamp,
                 index,
-                has_metadata ? py_reinterpret_cast<PyMetadata>(metadata) : nullptr
+                has_metadata ? py_reinterpret_cast<PyMetadata>(metadata) : nullptr,
+                {}
         ))
     {
         return -1;
@@ -99,6 +155,7 @@ constexpr char const* const cStateLogMessage = "log_message";
 constexpr char const* const cStateTimestamp = "timestamp";
 constexpr char const* const cStateFormattedTimestamp = "formatted_timestamp";
 constexpr char const* const cStateIndex = "index";
+constexpr char const* const cStateAttributes = "attributes";
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays)
 PyDoc_STRVAR(
@@ -132,11 +189,31 @@ auto PyLogEvent_getstate(PyLogEvent* self) -> PyObject* {
         if (false == clp_ffi_py::parse_py_string(formatted_timestamp_ptr, formatted_timestamp)) {
             return nullptr;
         }
+        if (self->has_metadata() && self->get_py_metadata()->get_metadata()->is_android_log()
+            && self->get_log_event()->has_attributes())
+        {
+            std::string formatted_attributes;
+            if (false
+                == format_android_log(
+                        self->get_log_event()->get_attributes(),
+                        formatted_attributes
+                ))
+            {
+                return nullptr;
+            }
+            formatted_timestamp += formatted_attributes;
+        }
         log_event->set_formatted_timestamp(formatted_timestamp);
     }
 
+    auto const& attributes{self->get_log_event()->get_attributes()};
+    auto* py_attributes{serialize_attributes_to_python_dict(attributes)};
+    if (nullptr == py_attributes) {
+        return nullptr;
+    }
+
     return Py_BuildValue(
-            "{sssssLsK}",
+            "{sssssLsKsO}",
             cStateLogMessage,
             log_event->get_log_message().c_str(),
             static_cast<char const*>(cStateFormattedTimestamp),
@@ -144,7 +221,9 @@ auto PyLogEvent_getstate(PyLogEvent* self) -> PyObject* {
             static_cast<char const*>(cStateTimestamp),
             log_event->get_timestamp(),
             cStateIndex,
-            log_event->get_index()
+            log_event->get_index(),
+            cStateAttributes,
+            py_attributes
     );
 }
 
@@ -224,7 +303,17 @@ auto PyLogEvent_setstate(PyLogEvent* self, PyObject* state) -> PyObject* {
         return nullptr;
     }
 
-    if (false == self->init(log_message, timestamp, index, nullptr, formatted_timestamp)) {
+    LogEvent::attribute_table_t attributes;
+    auto* attributes_obj{PyDict_GetItemString(state, cStateAttributes)};
+    if (nullptr != attributes_obj
+        && false == deserialize_attributes_from_python_dict(attributes_obj, attributes))
+    {
+        return nullptr;
+    }
+
+    if (false
+        == self->init(log_message, timestamp, index, nullptr, attributes, formatted_timestamp))
+    {
         return nullptr;
     }
 
@@ -342,6 +431,40 @@ auto PyLogEvent_get_formatted_message(PyLogEvent* self, PyObject* args, PyObject
 
     return self->get_formatted_message(timezone);
 }
+
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays)
+PyDoc_STRVAR(
+        cPyLogEventGetAttributesDoc,
+        "get_attributes()\n"
+        "--\n\n"
+        ":return: The attributes associated with the log returned as a newly created Python "
+        "dictionary. Each attribute is stored as a key value pair.\n"
+);
+
+auto PyLogEvent_get_attributes(PyLogEvent* self) -> PyObject* {
+    return serialize_attributes_to_python_dict(self->get_log_event()->get_attributes());
+}
+
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays)
+PyDoc_STRVAR(
+        cPyLogEventGetCachedEncodedLogEventDoc,
+        "get_cached_encoded_log_event()\n"
+        "--\n\n"
+        ":return: A bytearray that contains the encoded log event.\n"
+        ":return: None if the encoded log event is not cached.\n"
+);
+
+auto PyLogEvent_get_cached_encoded_log_event(PyLogEvent* self) -> PyObject* {
+    auto const* log_event{self->get_log_event()};
+    if (false == log_event->has_cached_encoded_log_event()) {
+        Py_RETURN_NONE;
+    }
+    auto encoded_log_event_view{log_event->get_cached_encoded_log_event()};
+    return PyByteArray_FromStringAndSize(
+            size_checked_pointer_cast<char const>(encoded_log_event_view.data()),
+            static_cast<Py_ssize_t>(encoded_log_event_view.size())
+    );
+}
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays)
@@ -361,10 +484,20 @@ PyMethodDef PyLogEvent_method_table[]{
          METH_NOARGS,
          static_cast<char const*>(cPyLogEventGetIndexDoc)},
 
+        {"get_attributes",
+         py_c_function_cast(PyLogEvent_get_attributes),
+         METH_NOARGS,
+         static_cast<char const*>(cPyLogEventGetAttributesDoc)},
+
         {"get_formatted_message",
          py_c_function_cast(PyLogEvent_get_formatted_message),
          METH_KEYWORDS | METH_VARARGS,
          static_cast<char const*>(cPyLogEventGetFormattedMessageDoc)},
+
+        {"get_cached_encoded_log_event",
+         py_c_function_cast(PyLogEvent_get_cached_encoded_log_event),
+         METH_NOARGS,
+         static_cast<char const*>(cPyLogEventGetCachedEncodedLogEventDoc)},
 
         {"match_query",
          py_c_function_cast(PyLogEvent_match_query),
@@ -458,6 +591,15 @@ auto PyLogEvent::get_formatted_message(PyObject* timezone) -> PyObject* {
     if (false == parse_py_string(formatted_timestamp_ptr, formatted_timestamp)) {
         return nullptr;
     }
+    if (has_metadata() && m_py_metadata->get_metadata()->is_android_log()
+        && m_log_event->has_attributes())
+    {
+        std::string formatted_attributes;
+        if (false == format_android_log(m_log_event->get_attributes(), formatted_attributes)) {
+            return nullptr;
+        }
+        formatted_timestamp += formatted_attributes;
+    }
 
     if (cache_formatted_timestamp) {
         m_log_event->set_formatted_timestamp(formatted_timestamp);
@@ -474,10 +616,19 @@ auto PyLogEvent::init(
         ffi::epoch_time_ms_t timestamp,
         size_t index,
         PyMetadata* metadata,
-        std::optional<std::string_view> formatted_timestamp
+        LogEvent::attribute_table_t const& attributes,
+        std::optional<std::string_view> formatted_timestamp,
+        std::optional<gsl::span<int8_t>> encoded_log_event_view
 ) -> bool {
     // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-    m_log_event = new LogEvent(log_message, timestamp, index, formatted_timestamp);
+    m_log_event = new LogEvent(
+            log_message,
+            timestamp,
+            index,
+            attributes,
+            formatted_timestamp,
+            encoded_log_event_view
+    );
     if (nullptr == m_log_event) {
         PyErr_SetString(PyExc_RuntimeError, clp_ffi_py::cOutofMemoryError);
         return false;
@@ -506,7 +657,9 @@ auto PyLogEvent::create_new_log_event(
         std::string const& log_message,
         ffi::epoch_time_ms_t timestamp,
         size_t index,
-        PyMetadata* metadata
+        PyMetadata* metadata,
+        LogEvent::attribute_table_t const& attributes,
+        std::optional<gsl::span<int8_t>> encoded_log_event_view
 ) -> PyLogEvent* {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
     PyLogEvent* self{PyObject_New(PyLogEvent, get_py_type())};
@@ -515,7 +668,17 @@ auto PyLogEvent::create_new_log_event(
         return nullptr;
     }
     self->default_init();
-    if (false == self->init(log_message, timestamp, index, metadata)) {
+    if (false
+        == self->init(
+                log_message,
+                timestamp,
+                index,
+                metadata,
+                attributes,
+                std::nullopt,
+                encoded_log_event_view
+        ))
+    {
         return nullptr;
     }
     return self;

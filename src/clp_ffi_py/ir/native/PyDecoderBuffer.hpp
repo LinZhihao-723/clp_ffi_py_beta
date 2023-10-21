@@ -76,6 +76,21 @@ public:
      */
     auto commit_read_buffer_consumption(Py_ssize_t num_bytes_consumed) -> bool;
 
+    /**
+     * Commits the bytes consumed in the read buffer by incrementing the
+     * underlying cursor position. Get a memory view of the current decoded log
+     * event.
+     * @param num_bytes_consumed Total number of bytes consumed.
+     * @param encoded_log_event_view
+     * @return true on success.
+     * @return false on failure with the relevant Python exception and error
+     * set.
+     */
+    auto commit_read_buffer_consumption(
+            Py_ssize_t num_bytes_consumed,
+            gsl::span<int8_t>& encoded_log_event_view
+    ) -> bool;
+
     [[nodiscard]] auto get_num_decoded_message() const -> size_t { return m_num_decoded_message; }
 
     /**

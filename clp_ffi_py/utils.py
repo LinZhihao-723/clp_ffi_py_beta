@@ -17,7 +17,7 @@ def get_formatted_timestamp(timestamp: int, timezone: Optional[tzinfo]) -> str:
     if timezone is None:
         timezone = dateutil.tz.UTC
     dt: datetime = datetime.fromtimestamp(timestamp / 1000, timezone)
-    return dt.isoformat(sep=" ", timespec="milliseconds")
+    return dt.replace(tzinfo=None).isoformat(sep=" ", timespec="milliseconds")
 
 
 def get_timezone_from_timezone_id(timezone_id: str) -> tzinfo:

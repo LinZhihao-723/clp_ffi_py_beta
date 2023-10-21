@@ -3,6 +3,7 @@
 #include "encoding_methods.hpp"
 
 #include <clp/components/core/src/ffi/encoding_methods.hpp>
+#include <clp/components/core/src/ffi/ir_stream/attributes.hpp>
 #include <clp/components/core/src/ffi/ir_stream/encoding_methods.hpp>
 #include <clp/components/core/src/ffi/ir_stream/protocol_constants.hpp>
 #include <clp/components/core/src/type_utils.hpp>
@@ -45,6 +46,62 @@ auto encode_four_byte_preamble(PyObject* Py_UNUSED(self), PyObject* args) -> PyO
                 timezone,
                 ref_timestamp,
                 ir_buf
+        ))
+    {
+        PyErr_SetString(PyExc_NotImplementedError, clp_ffi_py::ir::native::cEncodePreambleError);
+        return nullptr;
+    }
+
+    return PyByteArray_FromStringAndSize(
+            size_checked_pointer_cast<char>(ir_buf.data()),
+            static_cast<Py_ssize_t>(ir_buf.size())
+    );
+}
+
+auto encode_four_byte_android_preamble(PyObject* self, PyObject* args) -> PyObject* {
+    ffi::epoch_time_ms_t ref_timestamp{};
+    char const* input_timestamp_format{};
+    char const* input_timezone{};
+    Py_ssize_t input_timestamp_format_size{};
+    Py_ssize_t input_timezone_size{};
+
+    if (0
+        == PyArg_ParseTuple(
+                args,
+                "Ls#s#",
+                &ref_timestamp,
+                &input_timestamp_format,
+                &input_timestamp_format_size,
+                &input_timezone,
+                &input_timezone_size
+        ))
+    {
+        return nullptr;
+    }
+
+    std::string_view const timestamp_format{
+            input_timestamp_format,
+            static_cast<size_t>(input_timestamp_format_size)
+    };
+    std::string_view const timezone{input_timezone, static_cast<size_t>(input_timezone_size)};
+    std::vector<int8_t> ir_buf;
+
+    std::vector<ffi::ir_stream::AttributeInfo> const attribute_table{
+            {"tag", ffi::ir_stream::AttributeInfo::TypeTag::String},
+            {"pid", ffi::ir_stream::AttributeInfo::TypeTag::Int},
+            {"tid", ffi::ir_stream::AttributeInfo::TypeTag::Int},
+            {"priority", ffi::ir_stream::AttributeInfo::TypeTag::Int}
+    };
+
+    if (false
+        == ffi::ir_stream::four_byte_encoding::encode_preamble(
+                timestamp_format,
+                {},
+                timezone,
+                ref_timestamp,
+                attribute_table,
+                ir_buf,
+                "CLP_ANDROID_IR"
         ))
     {
         PyErr_SetString(PyExc_NotImplementedError, clp_ffi_py::ir::native::cEncodePreambleError);

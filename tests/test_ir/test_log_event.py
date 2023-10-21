@@ -75,7 +75,7 @@ class TestCaseLogEvent(TestCLPBase):
             log_message=log_message, timestamp=timestamp, index=idx, metadata=metadata
         )
         self._check_log_event(log_event, log_message, timestamp, idx)
-        expected_formatted_message = f"1999-07-23 18:00:00.000+08:00{log_message}"
+        expected_formatted_message = f"1999-07-23 18:00:00.000{log_message}"
         formatted_message = log_event.get_formatted_message()
 
         self.assertEqual(
@@ -88,7 +88,7 @@ class TestCaseLogEvent(TestCLPBase):
         # timestamp
         test_tz: Optional[tzinfo] = dateutil.tz.gettz("America/New_York")
         assert test_tz is not None
-        expected_formatted_message = f"1999-07-23 06:00:00.000-04:00{log_message}"
+        expected_formatted_message = f"1999-07-23 06:00:00.000{log_message}"
         formatted_message = log_event.get_formatted_message(test_tz)
         self.assertEqual(
             formatted_message,
@@ -100,7 +100,7 @@ class TestCaseLogEvent(TestCLPBase):
         # will be used as default
         log_event = LogEvent(log_message=log_message, timestamp=timestamp, index=idx, metadata=None)
         self._check_log_event(log_event, log_message, timestamp, idx)
-        expected_formatted_message = f"1999-07-23 10:00:00.000+00:00{log_message}"
+        expected_formatted_message = f"1999-07-23 10:00:00.000{log_message}"
         formatted_message = log_event.get_formatted_message()
         self.assertEqual(
             formatted_message,
@@ -130,7 +130,7 @@ class TestCaseLogEvent(TestCLPBase):
         # For unpickled LogEvent object, even though the metadata is set to
         # None, it should still format the timestamp with the original tz before
         # pickling
-        expected_formatted_message = f"1999-07-23 18:00:00.000+08:00{log_message}"
+        expected_formatted_message = f"1999-07-23 18:00:00.000{log_message}"
         formatted_message = reconstructed_log_event.get_formatted_message()
         self.assertEqual(
             formatted_message,
