@@ -18,6 +18,17 @@ public:
     void operator()(PyObjectType* ptr) { Py_XDECREF(reinterpret_cast<PyObject*>(ptr)); }
 };
 
+
+/**
+ * A Python empty deleter that does nothing designed for the global pointers.
+ * @tparam PyObjectType
+ */
+template <typename PyObjectType>
+class PyObjectEmptyDeleter {
+public:
+    void operator()(PyObjectType* ptr) {}
+};
+
 /**
  * A type of smart pointer that maintains a reference to a Python object for the
  * duration of its lifetime.
@@ -25,5 +36,8 @@ public:
  */
 template <typename PyObjectType>
 using PyObjectPtr = std::unique_ptr<PyObjectType, PyObjectDeleter<PyObjectType>>;
+
+template <typename PyObjectType>
+using PyObjectGlobalPtr = std::unique_ptr<PyObjectType, PyObjectEmptyDeleter<PyObjectType>>;
 }  // namespace clp_ffi_py
 #endif  // CLP_FFI_PY_PY_OBJECT_PTR_HPP
