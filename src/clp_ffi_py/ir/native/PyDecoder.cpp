@@ -92,7 +92,7 @@ PyType_Spec PyDecoder_type_spec{
 };
 }  // namespace
 
-PyObjectPtr<PyTypeObject> PyDecoder::m_py_type{nullptr};
+PyObjectGlobalPtr<PyTypeObject> PyDecoder::m_py_type{nullptr};
 
 auto PyDecoder::module_level_init(PyObject* py_module) -> bool {
     static_assert(std::is_trivially_destructible<PyDecoder>());

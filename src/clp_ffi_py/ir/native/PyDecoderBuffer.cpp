@@ -362,8 +362,8 @@ auto PyDecoderBuffer::test_streaming(uint32_t seed) -> PyObject* {
     );
 }
 
-PyObjectPtr<PyTypeObject> PyDecoderBuffer::m_py_type{nullptr};
-PyObjectPtr<PyObject> PyDecoderBuffer::m_py_incomplete_stream_error{nullptr};
+PyObjectGlobalPtr<PyTypeObject> PyDecoderBuffer::m_py_type{nullptr};
+PyObjectGlobalPtr<PyObject> PyDecoderBuffer::m_py_incomplete_stream_error{nullptr};
 
 auto PyDecoderBuffer::get_py_type() -> PyTypeObject* {
     return m_py_type.get();

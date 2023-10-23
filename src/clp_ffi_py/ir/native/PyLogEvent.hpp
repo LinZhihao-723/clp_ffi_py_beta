@@ -154,7 +154,7 @@ private:
     LogEvent* m_log_event;
     PyMetadata* m_py_metadata;
 
-    static PyObjectPtr<PyTypeObject> m_py_type;
+    static PyObjectGlobalPtr<PyTypeObject> m_py_type;
 };
 }  // namespace clp_ffi_py::ir::native
 #endif  // CLP_FFI_PY_PY_LOG_EVENT_HPP
